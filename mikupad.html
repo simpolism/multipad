@@ -4173,6 +4173,230 @@ function InstructTemplatesModal({ isOpen, closeModal, templateStorage, selectedT
 		</${Modal}>`;
 }
 
+function ProfilesModal({ isOpen, closeModal, profileStorage, profiles, setProfiles, selectedProfile, setSelectedProfile, snapshotCurrentSession, cancel }) {
+	// `editing` is the in-modal working copy of the currently-selected profile.
+	// We commit it back to `profiles` on save / picker change / modal close.
+	const [editing, setEditing] = useState(null);
+
+	// Keep `editing` in sync with the selected profile when it changes.
+	useEffect(() => {
+		if (!profiles[selectedProfile]) {
+			setEditing(null);
+			return;
+		}
+		setEditing({ name: selectedProfile, ...profiles[selectedProfile] });
+	}, [selectedProfile, isOpen]);
+
+	function commit(next) {
+		setEditing(next);
+		// Persist the rename if needed, then write the profile.
+		setProfiles((prev) => {
+			const out = { ...prev };
+			if (next.name !== selectedProfile) {
+				delete out[selectedProfile];
+			}
+			const stripped = { ...next };
+			delete stripped.name;
+			out[next.name] = stripped;
+			return out;
+		});
+		if (next.name !== selectedProfile) {
+			setSelectedProfile(next.name);
+		}
+	}
+
+	function update(field, value) {
+		if (!editing) return;
+		commit({ ...editing, [field]: value });
+	}
+
+	function handleAdd() {
+		// Generate a unique default name.
+		let n = 1;
+		let name = `profile ${n}`;
+		while (profiles[name]) name = `profile ${++n}`;
+		const newProfile = {
+			...snapshotCurrentSession(),
+			speaker_label: name,
+			slot: null,
+			system_prompt: '',
+		};
+		setProfiles((prev) => ({ ...prev, [name]: newProfile }));
+		setSelectedProfile(name);
+	}
+
+	function handleDuplicate() {
+		if (!profiles[selectedProfile]) return;
+		const base = profiles[selectedProfile];
+		let name = `${selectedProfile} (copy)`;
+		let n = 2;
+		while (profiles[name]) name = `${selectedProfile} (copy ${n++})`;
+		setProfiles((prev) => ({ ...prev, [name]: { ...base, slot: null } }));
+		setSelectedProfile(name);
+	}
+
+	function handleDelete() {
+		if (!profiles[selectedProfile]) return;
+		if (!window.confirm(`Delete profile "${selectedProfile}"? This cannot be undone.`))
+			return;
+		setProfiles((prev) => {
+			const out = { ...prev };
+			delete out[selectedProfile];
+			return out;
+		});
+		const remaining = Object.keys(profiles).filter(k => k !== selectedProfile);
+		setSelectedProfile(remaining[0] || '');
+	}
+
+	function handleSnapshot() {
+		if (!editing) return;
+		const snap = snapshotCurrentSession();
+		commit({ ...editing, ...snap });
+	}
+
+	function exportProfiles() {
+		exportText('mikupad_profiles.json', JSON.stringify(profiles, null, 2));
+	}
+
+	function importProfiles() {
+		const fileInput = document.createElement('input');
+		fileInput.type = 'file';
+		fileInput.style.display = 'none';
+		fileInput.onchange = (e) => {
+			const file = e.target.files[0];
+			if (!file) return;
+			const reader = new FileReader();
+			reader.onload = async (ev) => {
+				try {
+					const parsed = JSON.parse(ev.target.result);
+					await profileStorage.performFullSave(parsed, true);
+					window.location.reload();
+				} catch (err) {
+					alert('Invalid profile JSON: ' + err.message);
+				}
+			};
+			reader.readAsText(file);
+		};
+		document.body.appendChild(fileInput);
+		fileInput.click();
+		document.body.removeChild(fileInput);
+	}
+
+	const profileNames = Object.keys(profiles).sort();
+	const profileOptions = profileNames.map(n => ({
+		name: profiles[n]?.slot ? `[${profiles[n].slot}] ${n}` : n,
+		nameNew: n,
+		value: n,
+	}));
+
+	const apiOptions = [
+		{ name: 'llama.cpp', value: API_LLAMA_CPP },
+		{ name: 'koboldcpp', value: API_KOBOLD_CPP },
+		{ name: 'OpenAI-Compatible', value: API_OPENAI_COMPAT },
+		{ name: 'AI Horde', value: API_AI_HORDE },
+	];
+
+	const slotOptions = [
+		{ name: '(no slot)', value: 'null' },
+		...[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => ({ name: String(n), value: String(n) })),
+	];
+
+	return html`
+		<${Modal} isOpen=${isOpen} onClose=${closeModal}
+			title="Endpoint Profiles"
+			description="Each profile bundles an endpoint, model, API key, system prompt, and a sampler snapshot. Hit Predict (or Ctrl+Shift+N for slotted profiles) to fire the active profile against the buffer.">
+			<div class="instructTemplatesImportExport">
+				<button title="Import profiles JSON" disabled=${!!cancel} onClick=${importProfiles}>Import</button>
+				<button title="Export profiles JSON" disabled=${!!cancel || profileNames.length === 0} onClick=${exportProfiles}>Export</button>
+			</div>
+			<div className="buttons instructTemplateSidebar">
+				<${SelectBoxTemplate}
+					label="Profile"
+					disabled=${!!cancel || profileNames.length === 0}
+					value=${selectedProfile}
+					onValueChange=${setSelectedProfile}
+					options=${profileOptions}/>
+				<button title="Duplicate" disabled=${!!cancel || !profiles[selectedProfile]} class="hbox-button" onClick=${handleDuplicate}>Duplicate</button>
+				<button title="New (snapshots current session settings)" disabled=${!!cancel} class="hbox-button" onClick=${handleAdd}>New</button>
+				<button title="Delete" disabled=${!!cancel || !profiles[selectedProfile]} class="hbox-button" onClick=${handleDelete}>Delete</button>
+			</div>
+			${editing && html`
+				<hr/>
+				<div class="instructtemplatesmodal-edits">
+					<div className="hbox">
+						<${InputBox} label="Name"
+							readOnly=${!!cancel}
+							value=${editing.name}
+							onValueChange=${(v) => commit({ ...editing, name: v || editing.name })}/>
+						<${SelectBox} label="Hotkey Slot (Ctrl+Shift+N)"
+							disabled=${!!cancel}
+							value=${editing.slot == null ? 'null' : String(editing.slot)}
+							onValueChange=${(v) => update('slot', v === 'null' ? null : Number(v))}
+							options=${slotOptions}/>
+						<${InputBox} label="Speaker Label"
+							readOnly=${!!cancel}
+							value=${editing.speaker_label || ''}
+							placeholder="e.g. claude"
+							onValueChange=${(v) => update('speaker_label', v)}/>
+					</div>
+					<div className="hbox">
+						<${InputBox} label="Endpoint URL"
+							readOnly=${!!cancel}
+							value=${editing.endpoint || ''}
+							onValueChange=${(v) => update('endpoint', v)}/>
+						<${SelectBox} label="API Type"
+							disabled=${!!cancel}
+							value=${editing.endpointAPI ?? API_OPENAI_COMPAT}
+							onValueChange=${(v) => update('endpointAPI', v)}
+							options=${apiOptions}/>
+					</div>
+					<div className="hbox">
+						<${InputBox} label="API Key"
+							readOnly=${!!cancel}
+							type="password"
+							value=${editing.endpointAPIKey || ''}
+							onValueChange=${(v) => update('endpointAPIKey', v)}/>
+						<${InputBox} label="Model"
+							readOnly=${!!cancel}
+							value=${editing.endpointModel || ''}
+							onValueChange=${(v) => update('endpointModel', v)}/>
+					</div>
+					<div className="hbox">
+						<${Checkbox} label="Use Chat Completions API (vs raw completion)"
+							value=${!!editing.useChatAPI}
+							onValueChange=${(v) => update('useChatAPI', v)}/>
+					</div>
+					<label>
+						System Prompt (chat-API only)
+						<textarea
+							readOnly=${!!cancel}
+							rows="3"
+							style=${{ width: '100%', boxSizing: 'border-box' }}
+							value=${editing.system_prompt || ''}
+							onInput=${(e) => update('system_prompt', e.target.value)}/>
+					</label>
+					<label>
+						Stop Sequences (JSON array)
+						<textarea
+							readOnly=${!!cancel}
+							rows="2"
+							style=${{ width: '100%', boxSizing: 'border-box' }}
+							value=${editing.stoppingStrings || '[]'}
+							onInput=${(e) => update('stoppingStrings', e.target.value)}/>
+					</label>
+					<hr/>
+					<div className="hbox">
+						<button disabled=${!!cancel} onClick=${handleSnapshot}>
+							Snapshot current session samplers into this profile
+						</button>
+					</div>
+					<div style=${{ fontSize: '0.85em', opacity: 0.7, marginTop: '8px' }}>
+						Snapshot stored: temp=${editing.temperature ?? '?'}, topP=${editing.topP ?? '?'}, topK=${editing.topK ?? '?'}, minP=${editing.minP ?? '?'}, repPen=${editing.repeatPenalty ?? '?'}
+					</div>
+				</div>`}
+		</${Modal}>`;
+}
+
 function GrammarModal({ isOpen, closeModal, grammar, setGrammar, endpointAPI, cancel }) {
 	const grammarExample = `# "root" specifies the pattern for the overall output
 root ::= (
@@ -5109,7 +5333,7 @@ class IndexedDBAdapter {
 
 	async openDatabase() {
 		return new Promise((resolve, reject) => {
-			const openRequest = indexedDB.open(this.dbName, 4);
+			const openRequest = indexedDB.open(this.dbName, 5);
 
 			openRequest.onerror = () => reject(openRequest.error);
 			openRequest.onsuccess = () => resolve(openRequest.result);
@@ -5118,7 +5342,7 @@ class IndexedDBAdapter {
 				const db = event.target.result;
 				const transaction = event.target.transaction;
 
-				for (const storeName of ["Sessions", "Templates", "Names", "Themes"]) {
+				for (const storeName of ["Sessions", "Templates", "Names", "Themes", "Profiles"]) {
 					if (!db.objectStoreNames.contains(storeName)) {
 						db.createObjectStore(storeName);
 					}
@@ -5643,6 +5867,54 @@ class TemplateStorage extends AbstractStorage {
 
 	async loadTemplates(db) {
 		this.templates = await this.loadAllFromDatabase(db);
+	}
+}
+
+class ProfileStorage extends AbstractStorage {
+	constructor(dbAdapter) {
+		super('Profiles', dbAdapter);
+		this.profiles = {};
+	}
+
+	async init() {
+		const db = await this.openDatabase();
+		await this.loadProfiles(db);
+	}
+
+	async performFullSave(newProfiles, writeOnly=false) {
+		const db = await this.openDatabase();
+
+		// Delete keys not present in the new state
+		for (const key of Object.keys(this.profiles)) {
+			if (Object.keys(newProfiles).includes(key))
+				continue;
+			if (writeOnly)
+				continue;
+			try {
+				await this.deleteFromDatabase(db, key);
+				console.warn('Deleted profile:', key);
+			} catch {
+				console.error('Error deleting profile:', key);
+			}
+		}
+
+		// Write all changed keys
+		for (const [key, value] of Object.entries(newProfiles)) {
+			if (JSON.stringify(value) === JSON.stringify(this.profiles[key]))
+				continue;
+			await this.saveToDatabase(db, key, value);
+		}
+
+		this.profiles = newProfiles;
+		this.dispatchChangeEvent();
+	}
+
+	getStorageData() {
+		return this.profiles;
+	}
+
+	async loadProfiles(db) {
+		this.profiles = await this.loadAllFromDatabase(db);
 	}
 }
 
@@ -6255,6 +6527,8 @@ const defaultPresets = {
 	}),
 	logitBias:{ bias:{},model:"none" },
 	instructTemplates: defaultTemplates,
+	profiles: {},
+	selectedProfile: '',
 	scrollTop: 0,
 	enabledSamplers: ['temperature', 'rep_pen', 'pres_pen', 'freq_pen', 'mirostat', 'top_k', 'top_p', 'min_p'],
 	grammar: '',
@@ -6468,7 +6742,7 @@ function CrashScreenFallback({ error }) {
   `;
 }
 
-export function App({ sessionStorage, templateStorage, themeStorage, useSessionState, useDBTemplates, useDBThemes, isMikupadEndpoint }) {
+export function App({ sessionStorage, templateStorage, themeStorage, profileStorage, useSessionState, useDBTemplates, useDBThemes, useDBProfiles, isMikupadEndpoint }) {
 	const promptArea = useRef();
 	const promptOverlay = useRef();
 	const undoStack = useRef([]);
@@ -6487,6 +6761,8 @@ export function App({ sessionStorage, templateStorage, themeStorage, useSessionS
 	const [selectedTemplate, setSelectedTemplate] = useSessionState('template', "Mistral");
 	const [chatMode, setChatMode] = useSessionState('chatMode', false);
 	const [templateList, setTemplateList] = useState([]);
+	const [profiles, setProfiles] = useDBProfiles(defaultPresets.profiles);
+	const [selectedProfile, setSelectedProfile] = useSessionState('selectedProfile', defaultPresets.selectedProfile);
 	const [currentPromptChunk, setCurrentPromptChunk] = useState(undefined);
 	const [undoHovered, setUndoHovered] = useState(false);
 	const [showProbs, setShowProbs] = useState(true);
@@ -7498,6 +7774,88 @@ export function App({ sessionStorage, templateStorage, themeStorage, useSessionS
 		}
 	}
 
+	// ----- Multi-endpoint Profiles (multipad fork) -----
+
+	// All session-state fields that a profile snapshot can carry.
+	// Endpoint identity + sampler bundle + chat-mode toggles + stop config.
+	// `system_prompt` is profile-only (no session counterpart) — used in
+	// chat-API mode and (TODO) optionally injected for completion mode.
+	// `slot` is the Ctrl+Shift+N hotkey slot (1-9 or null).
+	// `speaker_label` is the bot's display name in transcripts (TODO Stage 2).
+	const PROFILE_FIELDS = [
+		'endpoint', 'endpointAPI', 'endpointAPIKey', 'endpointModel',
+		'seed', 'maxPredictTokens',
+		'temperature', 'dynaTempRange', 'dynaTempExp',
+		'repeatPenalty', 'repeatLastN', 'penalizeNl',
+		'presencePenalty', 'frequencyPenalty',
+		'topK', 'topP', 'typicalP', 'minP', 'tfsZ',
+		'mirostat', 'mirostatTau', 'mirostatEta',
+		'xtcThreshold', 'xtcProbability',
+		'dryMultiplier', 'dryBase', 'dryAllowedLength', 'dryPenaltyRange', 'drySequenceBreakers',
+		'bannedTokens', 'ignoreEos', 'openaiPresets',
+		'stoppingStrings', 'useBasicStoppingMode', 'basicStoppingModeType',
+		'enabledSamplers', 'grammar',
+		'useChatAPI', 'chatMode', 'selectedTemplate',
+	];
+
+	const PROFILE_SETTERS = {
+		endpoint: setEndpoint, endpointAPI: setEndpointAPI, endpointAPIKey: setEndpointAPIKey, endpointModel: setEndpointModel,
+		seed: setSeed, maxPredictTokens: setMaxPredictTokens,
+		temperature: setTemperature, dynaTempRange: setDynaTempRange, dynaTempExp: setDynaTempExp,
+		repeatPenalty: setRepeatPenalty, repeatLastN: setRepeatLastN, penalizeNl: setPenalizeNl,
+		presencePenalty: setPresencePenalty, frequencyPenalty: setFrequencyPenalty,
+		topK: setTopK, topP: setTopP, typicalP: setTypicalP, minP: setMinP, tfsZ: setTfsZ,
+		mirostat: setMirostat, mirostatTau: setMirostatTau, mirostatEta: setMirostatEta,
+		xtcThreshold: setXtcThreshold, xtcProbability: setXtcProbability,
+		dryMultiplier: setDryMultiplier, dryBase: setDryBase, dryAllowedLength: setDryAllowedLength,
+		dryPenaltyRange: setDryPenaltyRange, drySequenceBreakers: setDrySequenceBreakers,
+		bannedTokens: setBannedTokens, ignoreEos: setIgnoreEos, openaiPresets: setOpenaiPresets,
+		stoppingStrings: setStoppingStrings, useBasicStoppingMode: setUseBasicStoppingMode, basicStoppingModeType: setBasicStoppingModeType,
+		enabledSamplers: setEnabledSamplers, grammar: setGrammar,
+		useChatAPI: setUseChatAPI, chatMode: setChatMode, selectedTemplate: setSelectedTemplate,
+	};
+
+	// Snapshot the current session into a profile-shaped object.
+	function snapshotCurrentSession() {
+		return {
+			endpoint, endpointAPI, endpointAPIKey, endpointModel,
+			seed, maxPredictTokens,
+			temperature, dynaTempRange, dynaTempExp,
+			repeatPenalty, repeatLastN, penalizeNl,
+			presencePenalty, frequencyPenalty,
+			topK, topP, typicalP, minP, tfsZ,
+			mirostat, mirostatTau, mirostatEta,
+			xtcThreshold, xtcProbability,
+			dryMultiplier, dryBase, dryAllowedLength, dryPenaltyRange, drySequenceBreakers,
+			bannedTokens, ignoreEos, openaiPresets,
+			stoppingStrings, useBasicStoppingMode, basicStoppingModeType,
+			enabledSamplers, grammar,
+			useChatAPI, chatMode, selectedTemplate,
+		};
+	}
+
+	// Apply a profile's fields to the current session state.
+	// Profile fields that are undefined are left untouched (additive override).
+	function applyProfile(profile) {
+		if (!profile) return;
+		for (const key of PROFILE_FIELDS) {
+			if (profile[key] === undefined) continue;
+			const setter = PROFILE_SETTERS[key];
+			if (setter) setter(profile[key]);
+		}
+	}
+
+	// Apply a profile and trigger a predict on the next render tick,
+	// after the state updates have committed.
+	function fireProfile(profileName) {
+		const profile = profiles[profileName];
+		if (!profile) return;
+		setSelectedProfile(profileName);
+		applyProfile(profile);
+		// Defer predict() so the state updates above have committed.
+		setTriggerPredict(true);
+	}
+
 	function setTitleToSession() {
 		const sessionName = sessionStorage.getProperty('name');
 		document.title = sessionName ? 'mikupad - ' + sessionName : 'mikupad';
@@ -7952,7 +8310,39 @@ export function App({ sessionStorage, templateStorage, themeStorage, useSessionS
 				case 'false:false:true:e':
 					ttsStop();
 					break;
-				
+				// Ctrl+Shift+1..9 — fire the profile assigned to that slot.
+				case 'false:true:true:1':
+				case 'false:true:true:2':
+				case 'false:true:true:3':
+				case 'false:true:true:4':
+				case 'false:true:true:5':
+				case 'false:true:true:6':
+				case 'false:true:true:7':
+				case 'false:true:true:8':
+				case 'false:true:true:9':
+				case 'false:true:true:!':
+				case 'false:true:true:@':
+				case 'false:true:true:#':
+				case 'false:true:true:$':
+				case 'false:true:true:%':
+				case 'false:true:true:^':
+				case 'false:true:true:&':
+				case 'false:true:true:*':
+				case 'false:true:true:(': {
+					// `key` reflects the shifted glyph on US layouts, so
+					// match either the digit or its shifted symbol.
+					const slotMap = { '1':1,'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,
+						'!':1,'@':2,'#':3,'$':4,'%':5,'^':6,'&':7,'*':8,'(':9 };
+					const slot = slotMap[key];
+					if (!slot) { preventDefaultAction = false; break; }
+					const entry = Object.entries(profiles).find(([_, p]) => p?.slot === slot);
+					if (entry) {
+						fireProfile(entry[0]);
+					} else {
+						preventDefaultAction = false;
+					}
+					break;
+				}
 				default:
 					keyState.current = e;
 					return;
@@ -9001,6 +9391,41 @@ export function App({ sessionStorage, templateStorage, themeStorage, useSessionS
 				<${InputBox} label="Tokens" value="${tokens}${tokensPerSec ? ` (${tokensPerSec.toFixed(2)} T/s)` : ``}" readOnly/>`}
 			${!!hordeQueuePos && html`
 				<${InputBox} label="Queue Position" value="${hordeQueuePos}" readOnly/>`}
+			<div className="buttons instructTemplateSidebar">
+				<${SelectBoxTemplate}
+					label="Profile (Ctrl+Enter fires this)"
+					disabled=${!!cancel || Object.keys(profiles).length === 0}
+					value=${selectedProfile}
+					onValueChange=${(v) => { setSelectedProfile(v); applyProfile(profiles[v]); }}
+					options=${Object.keys(profiles).sort().map(n => ({
+						name: profiles[n]?.slot ? `[${profiles[n].slot}] ${n}${profiles[n]?.speaker_label ? ` — ${profiles[n].speaker_label}` : ''}` : n,
+						nameNew: n,
+						value: n,
+					}))}/>
+				<button
+					title="Edit Profiles"
+					disabled=${!!cancel}
+					class="symbol-button"
+					onClick=${() => toggleModal("profiles")}>
+					<${SVG_Settings} style=${{ 'width':'.95em','transform':'translate(-50%, -45%)' }}/>
+				</button>
+			</div>
+			${Object.values(profiles).some(p => p?.slot) && html`
+				<div className="buttons" style=${{ flexWrap: 'wrap', gap: '4px' }}>
+					${[1,2,3,4,5,6,7,8,9].map(n => {
+						const entry = Object.entries(profiles).find(([_, p]) => p?.slot === n);
+						if (!entry) return null;
+						const [name, p] = entry;
+						return html`<button
+							key=${n}
+							title=${`Fire profile "${name}" (Ctrl+Shift+${n})`}
+							disabled=${!!cancel}
+							style=${{ flex: '1 1 auto', minWidth: '40px' }}
+							onClick=${() => fireProfile(name)}>
+							${n}: ${p.speaker_label || name}
+						</button>`;
+					})}
+				</div>`}
 			<div className="buttons">
 				<button
 					title="Run next prediction (Ctrl + Enter)"
@@ -9219,6 +9644,17 @@ export function App({ sessionStorage, templateStorage, themeStorage, useSessionS
 			templateStorage=${templateStorage}
 			cancel=${cancel}/>
 
+		<${ProfilesModal}
+			isOpen=${modalState.profiles}
+			closeModal=${() => closeModal("profiles")}
+			profileStorage=${profileStorage}
+			profiles=${profiles}
+			setProfiles=${setProfiles}
+			selectedProfile=${selectedProfile}
+			setSelectedProfile=${setSelectedProfile}
+			snapshotCurrentSession=${snapshotCurrentSession}
+			cancel=${cancel}/>
+
 		<${GrammarModal}
 			isOpen=${modalState.grammar}
 			closeModal=${() => closeModal("grammar")}
@@ -9391,15 +9827,20 @@ async function main() {
     const themeStorage = new ThemeStorage(dbAdapter);
     await themeStorage.init();
 
+	const profileStorage = new ProfileStorage(dbAdapter);
+	await profileStorage.init();
+
 	createRoot(document.body).render(html`
 		<${ErrorBoundary} FallbackComponent=${CrashScreenFallback}>
 			<${App}
 				sessionStorage=${sessionStorage}
 				templateStorage=${templateStorage}
 				themeStorage=${themeStorage}
+				profileStorage=${profileStorage}
 				useSessionState=${(name, initialState) => useSessionState(sessionStorage, name, initialState)}
 				useDBTemplates=${(initialState => useStorageState(templateStorage, initialState))}
 				useDBThemes=${(initialState => useStorageState(themeStorage, initialState))}
+				useDBProfiles=${(initialState => useStorageState(profileStorage, initialState))}
 				isMikupadEndpoint=${isMikupadEndpoint}/>
 		</${ErrorBoundary}>`);
 }
