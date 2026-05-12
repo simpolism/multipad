@@ -7872,6 +7872,16 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 			const setter = PROFILE_SETTERS[key];
 			if (setter) setter(profile[key]);
 		}
+		// Auto-promote: if the profile carries a non-empty stop-sequences
+		// JSON, force advanced stopping mode so they actually take effect.
+		// Otherwise the session-level basic stopping mode (Max Tokens etc.)
+		// would silently ignore the profile's stops.
+		try {
+			const parsed = JSON.parse(profile.stoppingStrings ?? '[]');
+			if (Array.isArray(parsed) && parsed.length > 0) {
+				setUseBasicStoppingMode(false);
+			}
+		} catch { /* invalid JSON — leave stopping mode alone */ }
 	}
 
 	// Apply a profile and trigger a predict on the next render tick,
