@@ -86,7 +86,7 @@ body {
 	display: flex;
 	flex: auto;
 	flex-direction: row;
-	
+
 	--font-size-multiplier: 1.0;
 }
 @media (min-width: calc(40.5em + 250px)) {
@@ -507,7 +507,7 @@ body {
 	left: 50%;
 	color: var(--color-svg-1);
 	transform: translate(-50%, -50%);
-} 
+}
 
 /* logit bias */
 .hbox-button {
@@ -531,7 +531,7 @@ body {
 }
 .logitBiasPower-sidebar {
 	width:10ch !important;
-} 
+}
 
 
 .overflow-container {
@@ -554,27 +554,27 @@ body {
 	grid-template-columns: 4em 1fr min-content;
 	grid-template-rows: min-content min-content min-content;
 	gap: 1px 8px;
-	grid-template-areas: 
+	grid-template-areas:
 		"power input add"
 		". tokens remove"
-		"hr hr hr"; 
+		"hr hr hr";
 	padding: 1px;
 }
 .lb-modal-power {
 	grid-area: power;
 	text-align: center;
 }
-.lb-modal-input { 
+.lb-modal-input {
 	grid-area: input;
 	text-align: left;
 }
-.lb-modal-button.lb-modal-button-add { 
+.lb-modal-button.lb-modal-button-add {
 	grid-area: add;
 }
-.lb-modal-button.lb-modal-button-remove { 
+.lb-modal-button.lb-modal-button-remove {
 	grid-area: remove;
 }
-.lb-modal-tokenized { 
+.lb-modal-tokenized {
 	grid-area: tokens;
 	font-family: monospace;
 	font-size:0.7rem;
@@ -1119,7 +1119,7 @@ button.completing {
 	left: 50%;
 	color: var(--color-svg-1);
 	transform: translate(-50%, -50%);
-} 
+}
 
 #button-settings {
 	display: none;
@@ -1392,7 +1392,7 @@ export async function getTokens({ endpoint, endpointAPI, endpointAPIKey, signal,
 			// These endpoints don't have a tokenenizer endpoint...
 			if (new URL(endpoint).host === 'api.openai.com' || new URL(endpoint).host === 'api.together.xyz')
 				return [];
-			
+
 			// Each backend that exposes an OpenAI-compatible API may have a different tokenizer endpoint.
 			// Instead of asking the user which backend they are using, let's try each one.
 			let tokens = null;
@@ -2820,7 +2820,7 @@ function EditorContextMenu({ isOpen, closeMenu, menuItems, className, ...props }
 	`;
 }
 
-const SVG = ({ 
+const SVG = ({
 	stroke="currentColor",
 	fill="currentColor",
 	strokeWidth="0",
@@ -3305,7 +3305,7 @@ function WorldInfoModal({ isOpen, closeModal, worldInfo, setWorldInfo, cancel, t
 				return;
 
 			const reader = new FileReader();
-			
+
 			reader.onload = (e) => {
 				try {
 					const contents = e.target.result;
@@ -3511,7 +3511,7 @@ function LogitBiasModal({ isOpen, closeModal, logitBias, setLogitBias, logitBias
 		if(!biasString) {
 			return;
 		}
-		if (isNaN(+biasPower) || biasPower == "") { 
+		if (isNaN(+biasPower) || biasPower == "") {
 			setLastBiasError("Error: Bias must be a number");
 			return;
 		}
@@ -3520,7 +3520,7 @@ function LogitBiasModal({ isOpen, closeModal, logitBias, setLogitBias, logitBias
 		const modBias = logitBias.bias;
 
 		// delete entry if power 0 or empty
-		if (biasPower == 0) {	
+		if (biasPower == 0) {
 			if (!logitBias.bias[biasString]) {
 				setLastBiasError("Error: Bias 0 = no Bias");
 				return;
@@ -3528,7 +3528,7 @@ function LogitBiasModal({ isOpen, closeModal, logitBias, setLogitBias, logitBias
 			console.log("delete",biasString);
 			setLogitBias((prevLogitBias) => {
 				delete modBias[biasString];
-				return { 
+				return {
 					...prevLogitBias,
 					bias: {
 						...modBias
@@ -3556,16 +3556,16 @@ function LogitBiasModal({ isOpen, closeModal, logitBias, setLogitBias, logitBias
 			}
 			// else process like normal
 			else {
-				// KNOWN ISSUE: some models automatically prepend a space to any tokenization 
-				// input. to work around this, I'm prepending the input with a "!==", then 
+				// KNOWN ISSUE: some models automatically prepend a space to any tokenization
+				// input. to work around this, I'm prepending the input with a "!==", then
 				// slicing the output array by the number of tokens of "!==".
 				// This could cause issues when trying to bias a token starting with ? where
-				// ? is any character that forms a single token together with " !==", like 
+				// ? is any character that forms a single token together with " !==", like
 				// this: " !==?" I've chosen "!==" because it seems to be a very conserved
 				// token between models.
 				//
-				// Now granted, I have not found any strings where this is actually an issue in 
-				// the tokenizers of the models I use, but this is still a huge hackjob of a 
+				// Now granted, I have not found any strings where this is actually an issue in
+				// the tokenizers of the models I use, but this is still a huge hackjob of a
 				// workaround. If anyone can think of a better solution, please let me know.
 				tokens = await getTokens({
 					endpoint,
@@ -3735,7 +3735,7 @@ function LogitBiasModal({ isOpen, closeModal, logitBias, setLogitBias, logitBias
 			You can bias IDs directly in a comma separated list, wrapped in '/'. Example: /382,1449,1802/
 
 			Different models might tokenize words differently. Always Re-Tokenize your biases when switching models by pressing the '+' button again for every entry.">
-			${isOpen 
+			${isOpen
 				&& html`
 					<div className="hbox-flex logitBiasContainer">
 						<div class="small-inputBox">
@@ -3743,7 +3743,7 @@ function LogitBiasModal({ isOpen, closeModal, logitBias, setLogitBias, logitBias
 								type="enumber"  max=100 min=-100 step=1
 								readOnly=${!!cancel}
 								onValueChange=${(value) => { handleLogitBiasInput("power",value)} }
-								value=${logitBiasInput.power} 
+								value=${logitBiasInput.power}
 								id="logitBiasPower"/>
 						</div>
 						<${InputBox} label="Token" type="text"
@@ -3786,7 +3786,7 @@ function LogitBiasModal({ isOpen, closeModal, logitBias, setLogitBias, logitBias
 											<div class="lb-modal-tokenized">
 												${endpointAPI == API_LLAMA_CPP && bias.strings != ""
 													? "["+bias.strings.join("|")+"] "
-													: "["+bias.tokens+"]" } 
+													: "["+bias.tokens+"]" }
 
 											</div>
 											<button
@@ -3831,7 +3831,7 @@ function InstructTemplatesModal({ isOpen, closeModal, templateStorage, selectedT
 			];
 			const tempIndex = newState.findIndex(obj => obj.name === templateName);
 			const index = tempIndex < 0 ? 0 : tempIndex;
-			if (key == "name") { 
+			if (key == "name") {
 				newState[index] = {
 					...newState[index],
 					'nameNew': value
@@ -3951,8 +3951,8 @@ function InstructTemplatesModal({ isOpen, closeModal, templateStorage, selectedT
 
 				if (name === undefined || nameBack === undefined)
 					continue
-				
-				// if template has been renamed, delete old entry, make sure to reselect 
+
+				// if template has been renamed, delete old entry, make sure to reselect
 				// current entry after
 				if (name != nameBack) {
 					newState[name] = prevState[nameBack]
@@ -4207,6 +4207,20 @@ function ProfilesModal({ isOpen, closeModal, profileStorage, profiles, setProfil
 
 	function update(field, value) {
 		if (!editing) return;
+		// Slot uniqueness: when assigning a non-null slot, clear it from any
+		// other profile that currently holds it. Otherwise hotkey dispatch
+		// becomes order-dependent.
+		if (field === 'slot' && value != null) {
+			setProfiles((prev) => {
+				const out = { ...prev };
+				for (const k of Object.keys(out)) {
+					if (k !== editing.name && out[k]?.slot === value) {
+						out[k] = { ...out[k], slot: null };
+					}
+				}
+				return out;
+			});
+		}
 		commit({ ...editing, [field]: value });
 	}
 
@@ -4495,8 +4509,8 @@ function InstructModal({ isOpen, closeModal, predict, cancel, modalState, templa
 		});
 
 		if (includeContext) {
-			instructPrompt = 
-				modalState.instructContext + 
+			instructPrompt =
+				modalState.instructContext +
 				prefix +
 				"Wait a moment, I want to ask you something." +
 				suffix +
@@ -4510,7 +4524,7 @@ function InstructModal({ isOpen, closeModal, predict, cancel, modalState, templa
 		});
     };
 
-	
+
 	useEffect(() => {
 		function onKeyDown(e) {
 			const { altKey, ctrlKey, shiftKey, key, defaultPrevented } = e;
@@ -4733,7 +4747,7 @@ function ThemeManagerModal({ isOpen, closeModal, allThemes, setAllThemes, curren
 
             return newThemes;
         });
-        
+
     };
 
     const handleExportTheme = () => {
@@ -4857,7 +4871,7 @@ function AIHordeSettingsModal({ isOpen, closeModal, endpoint, endpointAPIKey, se
             });
 
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            
+
             const modelData = (await res.json()).filter(model => model.type === "text");
             modelData.sort((a, b) => b.count - a.count || a.eta - b.eta); // Sort by workers, then ETA
             setModels(modelData);
@@ -5166,7 +5180,7 @@ function SearchAndReplaceWidget({ isOpen, closeWidget, id, children, promptArea,
 
 	function findAndStorePositions(mode,search,flags,elem) {
 		positions.current = findAllMatches(mode, search, flags, elem);
-		setCurrentIndex(-1); 
+		setCurrentIndex(-1);
 		if (!searchAndReplaceError && positions.current.length === 0)
 			setSearchAndReplaceError(`Warning: No matches found for ${ (mode==0?"Plaintext":mode==1?"RegEx":"Template") } \'${search}\'`)
 	}
@@ -5316,7 +5330,7 @@ class IndexedDBAdapter {
 				const startTime = performance.now();
 				const persistent = await navigator.storage.persist();
 				const elapsedTime = performance.now() - startTime;
-				
+
 				if (!persistent && !localStorage.getItem('persistentStorageWarningShown')) {
 					// If the response came back in less than 500ms, it was likely an automatic denial
 					// (500ms is generally considered faster than human reaction time)
@@ -5429,7 +5443,7 @@ class IndexedDBAdapter {
 			request.onerror = () => reject(request.error);
 		});
 	}
-	
+
 
 	async saveToDatabase(db, storeName, key, data) {
 		return new Promise((resolve, reject) => {
@@ -5963,7 +5977,7 @@ class SessionStorage extends AbstractStorage {
 	async loadFromDatabase(db, key) {
 		const data = await super.loadFromDatabase(db, key);
 		if(data && !['selectedSessionId', 'nextSessionId'].includes(key)){
-			data['name'] = await this.nameStorage.loadFromDatabase(db, key);		
+			data['name'] = await this.nameStorage.loadFromDatabase(db, key);
 		}
 		return data;
 	}
@@ -6099,7 +6113,7 @@ class SessionStorage extends AbstractStorage {
 	async createSession(newSessionName) {
 		const newId = await this.getNewId();
 		this.sessions[newId] = { name: newSessionName };
-		
+
 		const db = await this.openDatabase();
 		await this.saveToDatabase(db, newId, this.sessions[newId]);
 
@@ -6219,12 +6233,12 @@ const defaultTemplates = {
 		'instPre': '<end_of_turn>\\n<start_of_turn>user\\n',
 		'instSuf': '<end_of_turn>\\n<start_of_turn>model\\n',
 	},
-	'R1': { 
-		'sysPre' : '', 
-		'sysSuf' : '', 
-		'instPre': '<｜User｜>', 
-		'instSuf': '<｜Assistant｜><think>\n', 
-	}, 
+	'R1': {
+		'sysPre' : '',
+		'sysSuf' : '',
+		'instPre': '<｜User｜>',
+		'instSuf': '<｜Assistant｜><think>\n',
+	},
 };
 
 const defaultThemes = {
@@ -6567,7 +6581,7 @@ function regexSplitString(str, separator, limit) {
 	let lastIndex = 0;
 	let match;
 	const regex = new RegExp(separator, 'g');
-	
+
 	while ((match = regex.exec(str)) !== null) {
 			if (limit !== undefined && result.length >= limit) break;
 
@@ -6575,9 +6589,9 @@ function regexSplitString(str, separator, limit) {
 			separators.push(match[0]);
 			lastIndex = match.index + match[0].length;
 	}
-	
+
 	result.push(str.slice(lastIndex)); // Add the remainder of the string
-	
+
 	return [result, separators];
 }
 
@@ -6956,7 +6970,7 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 		const order = ["prefix","text","suffix"]
 		const assembled = authorNoteTokens.text && authorNoteTokens.text !== ""
 			? order.map(key => authorNoteTokens[key]).join("")
-			: "";	
+			: "";
 		if (assembled == "" || endpointAPI == API_OPENAI_COMPAT) {
 			setAuthorNoteTokens((prevauthorNoteTokens) => ({ ...prevauthorNoteTokens, "tokens": 0 }))
 			return
@@ -6974,13 +6988,13 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 				});
 				setAuthorNoteTokens((prevauthorNoteTokens) => ({
 					...prevauthorNoteTokens,
-					"tokens": tokenCount - 1 
+					"tokens": tokenCount - 1
 				}));
 			} catch (e) {
 				if (e.name !== 'AbortError'){
 					reportError(e);
 					setAuthorNoteTokens((prevauthorNoteTokens) => ({ ...prevauthorNoteTokens, "tokens": 0 }))
-				}	
+				}
 			}
 		}, 500);
 
@@ -6996,7 +7010,7 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 		const order = ["prefix","text","suffix"]
 		const assembled = memoryTokens.text && memoryTokens.text !== ""
 			? order.map(key => memoryTokens[key]).join("")
-			: "";	
+			: "";
 		if (assembled == "" || endpointAPI == API_OPENAI_COMPAT){
 			setMemoryTokens((prevMemoryTokens) => ({ ...prevMemoryTokens, "tokens": 0 }));
 			return
@@ -7015,7 +7029,7 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 				});
 				setMemoryTokens((prevMemoryTokens) => ({
 					...prevMemoryTokens,
-					"tokens": tokenCount - 1 
+					"tokens": tokenCount - 1
 				}));
 			} catch (e) {
 				if (e.name !== 'AbortError'){
@@ -7051,7 +7065,7 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 				});
 				setMemoryTokens((prevMemoryTokens) => ({
 					...prevMemoryTokens,
-					"tokensWI": tokenCount - 1 
+					"tokensWI": tokenCount - 1
 				}));
 			} catch (e) {
 				if (e.name !== 'AbortError'){
@@ -7091,23 +7105,23 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 		const textAfter = (sysInst !== "sys" && elem.selectionEnd !== elem.value.length ? "{predict}" : "") + elem.value.substring(endPos);
 		const selectedText = elem.value.substring(startPos, endPos);
 
-		const finalText = textBefore 
+		const finalText = textBefore
 						+ prefix
-						+ selectedText 
+						+ selectedText
 						+ suffix
 						+ textAfter;
 
 		const scrollTop = elem.scrollTop;
-		
+
 		elem.value = finalText;
 
 		let newCursorPos;
 		if (selectedText.length === 0) {
 			newCursorPos = startPos + prefix.length;
 		} else {
-			newCursorPos = startPos 
+			newCursorPos = startPos
 				+ prefix.length
-				+ selectedText.length 
+				+ selectedText.length
 				+ suffix.length;
 		}
 		elem.focus();
@@ -7153,7 +7167,7 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 			const chunk = promptChunks[i];
 			if (chunk.type !== 'user')
 				continue;
-			
+
 			if (chunk.content.includes(fillPlaceholder) || chunk.content.includes(predictPlaceholder)) {
 				// split the chunk in 2
 				let [sides, separators] = regexSplitString(chunk.content, placeholderRegex, 1);
@@ -7305,7 +7319,7 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 			: defaultPresets.memoryTokens.contextOrder;
 
 		// assemble context in order:
-		// the context is (1) split by line, (2) persistent context placeholders are 
+		// the context is (1) split by line, (2) persistent context placeholders are
 		// replaced, (3) instruct template placeholders are replaced (4) non-empty
 		// lines are joined back together.
 		const permContextPrompt = workingContextOrder.split("\n").map(function (line) {
@@ -7325,7 +7339,7 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 	useEffect(() => {
 		if (promptPreviewChunks.length) // Don't predict a new preview if we already have one.
 			return;
-		
+
 		if (fimPromptInfo !== undefined || cancel || endpointAPI == API_AI_HORDE || tokenHighlightMode === -1 || !showPromptPreview)
 			return;
 
@@ -7370,7 +7384,7 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 
 		return true;
 	}
-	
+
 	function convertChatToJSON(chatString, template) {
 		function extractMessage(text, prefix, suffixes, role) {
 			const matches = text.match(createLenientPrefixRegex(prefix));
@@ -7577,7 +7591,7 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 
 			let startTime = 0;
 			setTokensPerSec(0.0);
-			
+
 			for await (const chunk of (useChatAPI ? chatCompletion : completion)({
 				endpoint,
 				endpointAPI,
@@ -7585,7 +7599,22 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 					endpointAPIKey,
 					model: endpointModel
 				} : {}),
-				...(useChatAPI ? { messages: convertChatToJSON(prompt, templates[selectedTemplate]) } : { prompt }),
+				...(useChatAPI ? { messages: (() => {
+					const msgs = convertChatToJSON(prompt, templates[selectedTemplate]);
+					// If the active profile has a system_prompt set, inject it as
+					// the first system message (or replace an existing leading
+					// system message if the parsed transcript already has one
+					// from a {sys}{/sys} block in the buffer).
+					const sp = (profiles[selectedProfile]?.system_prompt || '').trim();
+					if (sp) {
+						if (msgs[0]?.role === 'system') {
+							msgs[0] = { role: 'system', content: sp };
+						} else {
+							msgs.unshift({ role: 'system', content: sp });
+						}
+					}
+					return msgs;
+				})() } : { prompt }),
 				...(seed != -1 ? { seed } : {}),
 				...(enabledSamplers.includes('temperature') ? {
 					temperature
@@ -7642,8 +7671,8 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 							dry_base: dryBase,
 							dry_allowed_length: dryAllowedLength,
 							dry_penalty_last_n: dryPenaltyRange,
-							dry_sequence_breakers: endpointAPI == API_OPENAI_COMPAT ? 
-								drySequenceBreakers : 
+							dry_sequence_breakers: endpointAPI == API_OPENAI_COMPAT ?
+								drySequenceBreakers :
 								JSON.parse(drySequenceBreakers),
 						}: {}),
 						...(enabledSamplers.includes('ban_tokens') ? {
@@ -7739,7 +7768,7 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 			setPromptChunks(p => [...p, { type: 'user', content: eotBot }])
 			prompt += `${eotBot}`
 		}
-		
+
 		return true;
 	}
 
@@ -7856,6 +7885,18 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 		setTriggerPredict(true);
 	}
 
+	// Helper: predict against the active profile if one is selected,
+	// otherwise plain predict() with current session state.
+	// Re-applies the profile every fire so edits made in the modal
+	// since last fire are picked up. No-op overhead if no profile.
+	function predictActive() {
+		if (selectedProfile && profiles[selectedProfile]) {
+			fireProfile(selectedProfile);
+		} else {
+			predict();
+		}
+	}
+
 	function setTitleToSession() {
 		const sessionName = sessionStorage.getProperty('name');
 		document.title = sessionName ? 'mikupad - ' + sessionName : 'mikupad';
@@ -7903,7 +7944,7 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 			container.style.setProperty('max-width', promptAreaWidth);
 		}
 	}, [promptAreaWidth]);
-	
+
 	useLayoutEffect(() => {
 		for (const theme in Object.values(allThemes)) {
 			document.documentElement.classList.remove(theme.className);
@@ -8231,7 +8272,7 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 			switch (`${altKey}:${ctrlKey}:${shiftKey}:${key}`) {
 				case 'false:false:true:Enter':
 				case 'false:true:false:Enter':
-					predict();
+					predictActive();
 					break;
 				case 'false:false:false:Escape':
 					if (cancel) {
@@ -8281,12 +8322,12 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 							(
 								// The prompt is not empty
 								newPromptChunks.length > 0 &&
-								// And the new prompt does not begin with a space 
+								// And the new prompt does not begin with a space
 								newPromptChunks[newPromptChunks.length - 1].content[newPromptChunks[newPromptChunks.length - 1].content.length - 1] != " "
 							)
 						)
 					)
-					
+
 					setPromptChunks(newPromptChunks);
 					setPromptPreviewChunks(newPromptPreviewChunks);
 					setTokens(newTokens);
@@ -8730,7 +8771,7 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 		const result = instructModalState.result;
 		if (!result)
 			return;
-		
+
 		const elem = promptArea.current;
 		if (!elem)
 			return;
@@ -8741,7 +8782,7 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 		const textAfter = elem.value.substring(endPos);
 		const selectedText = elem.value.substring(startPos, endPos);
 
-		const finalText = textBefore 
+		const finalText = textBefore
 					+ (result.replace ? (result.content) : (result.content + selectedText))
 					+ textAfter;
 
@@ -8769,13 +8810,13 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 			setTTSEnabled(false);
 			return;
 		}
-		
+
 		window.speechSynthesis.onvoiceschanged = () => {
 			const voices = window.speechSynthesis.getVoices();
 			ttsVoices.current = voices;
 		};
 		setTTSAvailable(true);
-		
+
 		return () => {
 			window.speechSynthesis.onvoiceschanged = null;
 		};
@@ -9085,7 +9126,7 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 						disabled=${!!cancel || useChatAPI}
 						class="symbol-button"
 						onClick=${() => setChatMode( (prevState) => !prevState)}>
-						${ (chatMode || useChatAPI) ? 
+						${ (chatMode || useChatAPI) ?
 							html`<${SVG_ChatMode} style=${{ 'width':'.9em' }} />` :
 							html`<${SVG_CompletionMode} style=${{ 'width':'1.05em' }} />`
 						}
@@ -9431,7 +9472,7 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 					title="Run next prediction (Ctrl + Enter)"
 					className=${cancel && !sessionEndpointConnecting ? ((predictStartTokens === tokens && (endpointAPI != API_AI_HORDE || !hordeProcessing)) ? 'processing' : 'completing') : ''}
 					disabled=${!!cancel || stoppingStringsError || drySequenceBreakersError || bannedTokensError}
-					onClick=${() => predict()}>
+					onClick=${() => predictActive()}>
 					Predict
 				</button>
 				<button
@@ -9746,7 +9787,7 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 						const textBefore = elem.value.substring(0, startPos) || "";
 						const textAfter = elem.value.substring(startPos);
 
-						const finalText = textBefore 
+						const finalText = textBefore
 										+ '{predict}'
 										+ textAfter;
 
@@ -9767,7 +9808,7 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 						const textBefore = elem.value.substring(0, startPos) || "";
 						const textAfter = elem.value.substring(startPos);
 
-						const finalText = textBefore 
+						const finalText = textBefore
 										+ '{fill}'
 										+ textAfter;
 
@@ -9812,7 +9853,7 @@ async function main() {
 			reportError(e);
 		}
 	}
-	
+
 	if (!isMikupadEndpoint) {
 		// Initialize IndexedDBAdapter
 		await dbAdapter.init();
