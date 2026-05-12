@@ -4379,9 +4379,23 @@ function ProfilesModal({ isOpen, closeModal, profileStorage, profiles, setProfil
 						<${Checkbox} label="Use Chat Completions API (vs raw completion)"
 							value=${!!editing.useChatAPI}
 							onValueChange=${(v) => update('useChatAPI', v)}/>
+						<${SelectBox} label="Prompt Format"
+							disabled=${!!cancel}
+							value=${editing.prompt_format || 'default'}
+							onValueChange=${(v) => update('prompt_format', v)}
+							options=${[
+								{ name: 'Default', value: 'default' },
+								{ name: 'CLI Simulation (Janus-style)', value: 'cli_sim' },
+							]}/>
 					</div>
+					${editing.prompt_format === 'cli_sim' && html`
+						<${InputBox} label="CLI User Prompt"
+							readOnly=${!!cancel}
+							placeholder="cat untitled.txt"
+							value=${editing.cli_user_prompt || ''}
+							onValueChange=${(v) => update('cli_user_prompt', v)}/>`}
 					<label>
-						System Prompt (chat-API only)
+						System Prompt (chat-API and CLI-sim)
 						<textarea
 							readOnly=${!!cancel}
 							rows="3"
@@ -7512,6 +7526,15 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 
 		let predictCount = 0;
 		ttsPushUserInput(); ttsPaused.current = false;
+
+		// CLI-simulation mode forces the chat-completions endpoint regardless
+		// of the session's useChatAPI toggle, since it sends a prefilled
+		// assistant message that only the chat-completions endpoint accepts.
+		// Also bypasses chat-mode buffer manipulation (instSuf/instPre tail
+		// rewriting) since the buffer is sent verbatim as the assistant turn.
+		const _cliSim = profiles[selectedProfile]?.prompt_format === 'cli_sim';
+		const _useChatEndpoint = useChatAPI || _cliSim;
+
 		try {
 			// sometimes "getTokenCount" can take a while because the server is busy
 			// so let's set the predictStartTokens beforehand.
@@ -7531,7 +7554,7 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 				setPredictStartTokens(tokenCount);
 
 				// Chat Mode
-				if ((chatMode || useChatAPI) && !restartedPredict && templates[selectedTemplate]) {
+				if ((chatMode || useChatAPI) && !restartedPredict && !_cliSim && templates[selectedTemplate]) {
 					// add user EOT template (instruct suffix) if not switch completion
 					const { instSuf, instPre } = replaceNewlines(templates[selectedTemplate]);
 					const instSufIndex = instSuf ? regexLastIndexOf(prompt, createLenientRegex(instSuf)) : -1;
@@ -7592,29 +7615,47 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 			let startTime = 0;
 			setTokensPerSec(0.0);
 
-			for await (const chunk of (useChatAPI ? chatCompletion : completion)({
+			for await (const chunk of (_useChatEndpoint ? chatCompletion : completion)({
 				endpoint,
 				endpointAPI,
 				...(endpointAPI == API_OPENAI_COMPAT || endpointAPI == API_LLAMA_CPP || endpointAPI == API_AI_HORDE ? {
 					endpointAPIKey,
 					model: endpointModel
 				} : {}),
-				...(useChatAPI ? { messages: (() => {
-					const msgs = convertChatToJSON(prompt, templates[selectedTemplate]);
-					// If the active profile has a system_prompt set, inject it as
-					// the first system message (or replace an existing leading
-					// system message if the parsed transcript already has one
-					// from a {sys}{/sys} block in the buffer).
-					const sp = (profiles[selectedProfile]?.system_prompt || '').trim();
-					if (sp) {
-						if (msgs[0]?.role === 'system') {
-							msgs[0] = { role: 'system', content: sp };
-						} else {
-							msgs.unshift({ role: 'system', content: sp });
-						}
+				...((() => {
+					// Three send-shapes:
+					// 1. CLI-simulation mode (profile.prompt_format === 'cli_sim'):
+					//    Janus-style "the assistant is in CLI mode" prime. The buffer
+					//    is sent as a prefilled assistant message; the model continues
+					//    the file. Forces chat-API regardless of useChatAPI.
+					// 2. Chat API: standard convertChatToJSON path with optional
+					//    profile system_prompt injection (prepended or replacing a
+					//    leading system msg from a {sys}{/sys} block in the buffer).
+					// 3. Raw completion: send the buffer verbatim as `prompt`.
+					const profile = profiles[selectedProfile];
+					if (profile?.prompt_format === 'cli_sim') {
+						const sysPrime = profile.system_prompt || 'The assistant is in CLI simulation mode, and responds to the user\'s CLI commands only with the output of the command.';
+						const userPrime = profile.cli_user_prompt || 'cat untitled.txt';
+						return { messages: [
+							{ role: 'system', content: sysPrime },
+							{ role: 'user', content: userPrime },
+							{ role: 'assistant', content: prompt },
+						] };
 					}
-					return msgs;
-				})() } : { prompt }),
+					if (useChatAPI) {
+						const msgs = convertChatToJSON(prompt, templates[selectedTemplate]);
+						const sp = (profile?.system_prompt || '').trim();
+						if (sp) {
+							if (msgs[0]?.role === 'system') {
+								msgs[0] = { role: 'system', content: sp };
+							} else {
+								msgs.unshift({ role: 'system', content: sp });
+							}
+						}
+						return { messages: msgs };
+					}
+					return { prompt };
+				})()),
 				...(seed != -1 ? { seed } : {}),
 				...(enabledSamplers.includes('temperature') ? {
 					temperature
@@ -7762,7 +7803,7 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 		}
 
 		// Chat Mode
-		if (!callback && (chatMode || useChatAPI) && predictCount > 0) {
+		if (!callback && (chatMode || useChatAPI) && !_cliSim && predictCount > 0) {
 			// add bot EOT template (instruct prefix)
 			const eotBot = templates[selectedTemplate]?.instPre.replace(/\\n/g, '\n')
 			setPromptChunks(p => [...p, { type: 'user', content: eotBot }])
