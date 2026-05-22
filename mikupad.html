@@ -774,6 +774,13 @@ body {
 	border-radius: 2px 2px 0 0;
 	outline: none;
 	border: none;
+	transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+.InputSlider-container input[type="range"]:hover {
+	background: var(--color-bg-highlight-1);
+}
+.InputSlider-container input[type="range"]:focus {
+	box-shadow: 0 0 0 2px var(--color-miku);
 }
 
 .InputSlider-container input[type="range"]::-webkit-slider-runnable-track {
@@ -1283,6 +1290,39 @@ body.markdown-preview-on #markdown-preview {
     background-color: #333;
     padding: 1em;
     border-radius: 5px;
+}
+
+/* Toast notifications */
+.toast-container {
+    position: fixed;
+    bottom: 1em;
+    right: 1em;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5em;
+    pointer-events: none;
+}
+.toast {
+    pointer-events: auto;
+    background: var(--color-bg-ui-1);
+    color: var(--color-text-ui);
+    border: 1px solid var(--color-bg-rule);
+    border-radius: 4px;
+    padding: 0.75em 1em;
+    font-size: 0.85em;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    animation: toast-in 0.2s ease-out, toast-out 0.2s ease-in 2.8s forwards;
+    max-width: 300px;
+    word-wrap: break-word;
+}
+@keyframes toast-in {
+    from { transform: translateY(100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+@keyframes toast-out {
+    from { transform: translateY(0); opacity: 1; }
+    to { transform: translateY(100%); opacity: 0; }
 }
 
 </style>
@@ -6877,6 +6917,14 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 	const [promptPreviewReroll, setPromptPreviewReroll] = useState(0);
 	const [showPromptPreview, setShowPromptPreview] = useSessionState('promptPreview', defaultPresets.promptPreview);
 	const [promptPreviewTokens, setPromptPreviewTokens] = useSessionState('promptPreviewTokens', defaultPresets.promptPreviewTokens);
+	const [toasts, setToasts] = useState([]);
+
+	// Toast helper
+	function showToast(message) {
+		const id = Date.now() + Math.random();
+		setToasts(prev => [...prev, { id, message }]);
+		setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000);
+	}
     const [currentThemeName, setCurrentThemeName] = usePersistentState('themeName', (() => {
 		// map old theme to new theme system
 		switch (__theme) {
@@ -7904,7 +7952,7 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 		};
 	}
 
-	// Apply a profile's fields to the current session state.
+// Apply a profile's fields to the current session state.
 	// Profile fields that are undefined are left untouched (additive override).
 	function applyProfile(profile) {
 		if (!profile) return;
@@ -7923,6 +7971,7 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 				setUseBasicStoppingMode(false);
 			}
 		} catch { /* invalid JSON — leave stopping mode alone */ }
+		showToast(`Switched to profile "${Object.entries(profiles).find(([_, p]) => p === profile)?.[0] || 'unknown'}"`);
 	}
 
 	// Apply a profile and trigger a predict on the next render tick,
@@ -9942,18 +9991,23 @@ async function main() {
 	const profileStorage = new ProfileStorage(dbAdapter);
 	await profileStorage.init();
 
-	createRoot(document.body).render(html`
+createRoot(document.body).render(html`
 		<${ErrorBoundary} FallbackComponent=${CrashScreenFallback}>
-			<${App}
-				sessionStorage=${sessionStorage}
-				templateStorage=${templateStorage}
-				themeStorage=${themeStorage}
-				profileStorage=${profileStorage}
-				useSessionState=${(name, initialState) => useSessionState(sessionStorage, name, initialState)}
-				useDBTemplates=${(initialState => useStorageState(templateStorage, initialState))}
-				useDBThemes=${(initialState => useStorageState(themeStorage, initialState))}
-				useDBProfiles=${(initialState => useStorageState(profileStorage, initialState))}
-				isMikupadEndpoint=${isMikupadEndpoint}/>
+			<div>
+				<${App}
+					sessionStorage=${sessionStorage}
+					templateStorage=${templateStorage}
+					themeStorage=${themeStorage}
+					profileStorage=${profileStorage}
+					useSessionState=${(name, initialState) => useSessionState(sessionStorage, name, initialState)}
+					useDBTemplates=${(initialState => useStorageState(templateStorage, initialState))}
+					useDBThemes=${(initialState => useStorageState(themeStorage, initialState))}
+					useDBProfiles=${(initialState => useStorageState(profileStorage, initialState))}
+					isMikupadEndpoint=${isMikupadEndpoint}/>
+				<div class="toast-container" role="region" aria-label="Notifications" aria-live="polite">
+					${toasts.map(t => html`<div key=${t.id} class="toast">${t.message}</div>`)}
+				</div>
+			</div>
 		</${ErrorBoundary}>`);
 }
 
