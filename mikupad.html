@@ -9479,14 +9479,27 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 				</button>
 
 			</${CollapsibleGroup}>
-			${!!tokens && html`
-				<${InputBox} label="Tokens" value="${tokens}${tokensPerSec ? ` (${tokensPerSec.toFixed(2)} T/s)` : ``}" readOnly/>`}
-			${!!hordeQueuePos && html`
-				<${InputBox} label="Queue Position" value="${hordeQueuePos}" readOnly/>`}
-			<div className="buttons instructTemplateSidebar">
+		${!!tokens && html`
+			<${InputBox} label="Tokens" value="${tokens}${tokensPerSec ? ` (${tokensPerSec.toFixed(2)} T/s)` : ``}" readOnly/>`}
+		${!!hordeQueuePos && html`
+			<${InputBox} label="Queue Position" value="${hordeQueuePos}" readOnly/>`}
+		<div className="buttons instructTemplateSidebar">
+			${Object.keys(profiles).length === 0 ? html`
+				<div className="profile-empty-state" style=${{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '200px' }}>
+					<span style=${{ fontSize: '0.85em', opacity: 0.6 }}>No profiles yet</span>
+					<button
+						title="Create a profile (snapshots current settings)"
+						disabled=${!!cancel}
+						class="hbox-button"
+						style=${{ width: '100%', justifyContent: 'center' }}
+						onClick=${() => toggleModal("profiles")}>
+						Click ⚙ to create one
+					</button>
+				</div>
+			` : html`
 				<${SelectBoxTemplate}
 					label="Profile (Ctrl+Enter fires this)"
-					disabled=${!!cancel || Object.keys(profiles).length === 0}
+					disabled=${!!cancel}
 					value=${selectedProfile}
 					onValueChange=${(v) => { setSelectedProfile(v); applyProfile(profiles[v]); }}
 					options=${Object.keys(profiles).sort().map(n => ({
@@ -9501,23 +9514,30 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 					onClick=${() => toggleModal("profiles")}>
 					<${SVG_Settings} style=${{ 'width':'.95em','transform':'translate(-50%, -45%)' }}/>
 				</button>
-			</div>
-			${Object.values(profiles).some(p => p?.slot) && html`
-				<div className="buttons" style=${{ flexWrap: 'wrap', gap: '4px' }}>
-					${[1,2,3,4,5,6,7,8,9].map(n => {
-						const entry = Object.entries(profiles).find(([_, p]) => p?.slot === n);
-						if (!entry) return null;
-						const [name, p] = entry;
-						return html`<button
-							key=${n}
-							title=${`Fire profile "${name}" (Ctrl+Shift+${n})`}
-							disabled=${!!cancel}
-							style=${{ flex: '1 1 auto', minWidth: '40px' }}
-							onClick=${() => fireProfile(name)}>
-							${n}: ${p.speaker_label || name}
-						</button>`;
-					})}
-				</div>`}
+			`}
+		</div>
+		<div className="buttons hotkey-legend" style=${{ flexWrap: 'wrap', gap: '4px', marginTop: '4px' }}>
+			${[1,2,3,4,5,6,7,8,9].map(n => {
+				const entry = Object.entries(profiles).find(([_, p]) => p?.slot === n);
+				if (entry) {
+					const [name, p] = entry;
+					return html`<button
+						key=${n}
+						title=${`Fire profile "${name}" (Ctrl+Shift+${n})`}
+						disabled=${!!cancel}
+						style=${{ flex: '1 1 auto', minWidth: '40px' }}
+						onClick=${() => fireProfile(name)}>
+						${n}: ${p.speaker_label || name}
+					</button>`;
+				}
+				return html`<span
+					key=${n}
+					title="Assign a profile to slot ${n} in the Profiles modal (Ctrl+Shift+${n})"
+					style=${{ flex: '1 1 auto', minWidth: '40px', padding: '4px 8px', fontSize: '0.75em', opacity: 0.3, textAlign: 'center', color: 'var(--color-text-hint)', background: 'var(--color-bg-disabled-2)', borderRadius: '3px' }}>
+					${n}: —
+				</span>`;
+			})}
+		</div>
 			<div className="buttons">
 				<button
 					title="Run next prediction (Ctrl + Enter)"
