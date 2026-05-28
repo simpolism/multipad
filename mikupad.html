@@ -774,6 +774,13 @@ body {
 	border-radius: 2px 2px 0 0;
 	outline: none;
 	border: none;
+	transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+.InputSlider-container input[type="range"]:hover {
+	background: var(--color-bg-highlight-1);
+}
+.InputSlider-container input[type="range"]:focus {
+	box-shadow: 0 0 0 2px var(--color-miku);
 }
 
 .InputSlider-container input[type="range"]::-webkit-slider-runnable-track {
@@ -1285,11 +1292,44 @@ body.markdown-preview-on #markdown-preview {
     border-radius: 5px;
 }
 
+/* Toast notifications */
+.toast-container {
+    position: fixed;
+    bottom: 1em;
+    right: 1em;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5em;
+    pointer-events: none;
+}
+.toast {
+    pointer-events: auto;
+    background: var(--color-bg-ui-1);
+    color: var(--color-text-ui);
+    border: 1px solid var(--color-bg-rule);
+    border-radius: 4px;
+    padding: 0.75em 1em;
+    font-size: 0.85em;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    animation: toast-in 0.2s ease-out, toast-out 0.2s ease-in 2.8s forwards;
+    max-width: 300px;
+    word-wrap: break-word;
+}
+@keyframes toast-in {
+    from { transform: translateY(100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+@keyframes toast-out {
+    from { transform: translateY(0); opacity: 1; }
+    to { transform: translateY(100%); opacity: 0; }
+}
+
 </style>
 <style id="dynamic-theme-style"></style>
 <script type="module">
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { html } from 'htm/react';
 import { SVResizeObserver } from 'scrollview-resize';
@@ -6770,7 +6810,43 @@ function CrashScreenFallback({ error }) {
   `;
 }
 
-export function App({ sessionStorage, templateStorage, themeStorage, profileStorage, useSessionState, useDBTemplates, useDBThemes, useDBProfiles, isMikupadEndpoint }) {
+// ToastProvider component - manages toast state and provides showToast to children
+function ToastProvider({ children }) {
+	const [toasts, setToasts] = useState([]);
+	const showToast = (message) => {
+		const id = Date.now() + Math.random();
+		setToasts(prev => [...prev, { id, message }]);
+		setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000);
+	};
+	return html`
+		<${Fragment}>
+			${children({ showToast })}
+			<div class="toast-container" role="region" aria-label="Notifications" aria-live="polite">
+				${toasts.map(t => html`<div key=${t.id} class="toast">${t.message}</div>`)}
+			</div>
+		</${Fragment}>
+	`;
+}
+
+// AppWrapper - wraps App with showToast from ToastProvider context
+function AppWrapper({ sessionStorage, templateStorage, themeStorage, profileStorage, useSessionState, useDBTemplates, useDBThemes, useDBProfiles, isMikupadEndpoint, showToast }) {
+	return html`
+		<${App}
+			sessionStorage=${sessionStorage}
+			templateStorage=${templateStorage}
+			themeStorage=${themeStorage}
+			profileStorage=${profileStorage}
+			useSessionState=${useSessionState}
+			useDBTemplates=${useDBTemplates}
+			useDBThemes=${useDBThemes}
+			useDBProfiles=${useDBProfiles}
+			isMikupadEndpoint=${isMikupadEndpoint}
+			showToast=${showToast}
+		/>
+	`;
+}
+
+export function App({ sessionStorage, templateStorage, themeStorage, profileStorage, useSessionState, useDBTemplates, useDBThemes, useDBProfiles, isMikupadEndpoint, showToast }) {
 	const promptArea = useRef();
 	const promptOverlay = useRef();
 	const undoStack = useRef([]);
@@ -6877,7 +6953,8 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 	const [promptPreviewReroll, setPromptPreviewReroll] = useState(0);
 	const [showPromptPreview, setShowPromptPreview] = useSessionState('promptPreview', defaultPresets.promptPreview);
 	const [promptPreviewTokens, setPromptPreviewTokens] = useSessionState('promptPreviewTokens', defaultPresets.promptPreviewTokens);
-    const [currentThemeName, setCurrentThemeName] = usePersistentState('themeName', (() => {
+
+	    const [currentThemeName, setCurrentThemeName] = usePersistentState('themeName', (() => {
 		// map old theme to new theme system
 		switch (__theme) {
 		case 1:
@@ -7904,7 +7981,7 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 		};
 	}
 
-	// Apply a profile's fields to the current session state.
+// Apply a profile's fields to the current session state.
 	// Profile fields that are undefined are left untouched (additive override).
 	function applyProfile(profile) {
 		if (!profile) return;
@@ -7926,15 +8003,16 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 	}
 
 	// Apply a profile and trigger a predict on the next render tick,
-	// after the state updates have committed.
-	function fireProfile(profileName) {
-		const profile = profiles[profileName];
-		if (!profile) return;
-		setSelectedProfile(profileName);
-		applyProfile(profile);
-		// Defer predict() so the state updates above have committed.
-		setTriggerPredict(true);
-	}
+		// after the state updates have committed.
+		function fireProfile(profileName, { announce = false } = {}) {
+			const profile = profiles[profileName];
+			if (!profile) return;
+			setSelectedProfile(profileName);
+			applyProfile(profile);
+			if (announce) showToast(`Fired profile "${profileName}"`);
+			// Defer predict() so the state updates above have committed.
+			setTriggerPredict(true);
+		}
 
 	// Helper: predict against the active profile if one is selected,
 	// otherwise plain predict() with current session state.
@@ -8428,12 +8506,12 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 					const slot = slotMap[key];
 					if (!slot) { preventDefaultAction = false; break; }
 					const entry = Object.entries(profiles).find(([_, p]) => p?.slot === slot);
-					if (entry) {
-						fireProfile(entry[0]);
-					} else {
-						preventDefaultAction = false;
-					}
-					break;
+								if (entry) {
+									fireProfile(entry[0], { announce: true });
+								} else {
+									preventDefaultAction = false;
+								}
+								break;
 				}
 				default:
 					keyState.current = e;
@@ -9479,45 +9557,65 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 				</button>
 
 			</${CollapsibleGroup}>
-			${!!tokens && html`
-				<${InputBox} label="Tokens" value="${tokens}${tokensPerSec ? ` (${tokensPerSec.toFixed(2)} T/s)` : ``}" readOnly/>`}
-			${!!hordeQueuePos && html`
-				<${InputBox} label="Queue Position" value="${hordeQueuePos}" readOnly/>`}
-			<div className="buttons instructTemplateSidebar">
-				<${SelectBoxTemplate}
-					label="Profile (Ctrl+Enter fires this)"
-					disabled=${!!cancel || Object.keys(profiles).length === 0}
-					value=${selectedProfile}
-					onValueChange=${(v) => { setSelectedProfile(v); applyProfile(profiles[v]); }}
-					options=${Object.keys(profiles).sort().map(n => ({
-						name: profiles[n]?.slot ? `[${profiles[n].slot}] ${n}${profiles[n]?.speaker_label ? ` — ${profiles[n].speaker_label}` : ''}` : n,
-						nameNew: n,
-						value: n,
-					}))}/>
-				<button
-					title="Edit Profiles"
-					disabled=${!!cancel}
-					class="symbol-button"
-					onClick=${() => toggleModal("profiles")}>
-					<${SVG_Settings} style=${{ 'width':'.95em','transform':'translate(-50%, -45%)' }}/>
-				</button>
-			</div>
-			${Object.values(profiles).some(p => p?.slot) && html`
-				<div className="buttons" style=${{ flexWrap: 'wrap', gap: '4px' }}>
+		${!!tokens && html`
+			<${InputBox} label="Tokens" value="${tokens}${tokensPerSec ? ` (${tokensPerSec.toFixed(2)} T/s)` : ``}" readOnly/>`}
+		${!!hordeQueuePos && html`
+			<${InputBox} label="Queue Position" value="${hordeQueuePos}" readOnly/>`}
+		<div className="buttons instructTemplateSidebar">
+			${Object.keys(profiles).length === 0 ? html`
+				<div className="profile-empty-state" style=${{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '200px' }}>
+					<span style=${{ fontSize: '0.85em', opacity: 0.6 }}>No profiles yet</span>
+					<button
+						title="Create a profile (snapshots current settings)"
+						disabled=${!!cancel}
+						class="hbox-button"
+						style=${{ width: '100%', justifyContent: 'center' }}
+						onClick=${() => toggleModal("profiles")}>
+						Click ⚙ to create one
+					</button>
+				</div>
+			` : html`
+						<${SelectBoxTemplate}
+							label="Profile (Ctrl+Enter fires this)"
+							disabled=${!!cancel}
+							value=${selectedProfile}
+							onValueChange=${(v) => { setSelectedProfile(v); applyProfile(profiles[v]); showToast(`Switched to profile "${v}"`); }}
+							options=${Object.keys(profiles).sort().map(n => ({
+								name: profiles[n]?.slot ? `[${profiles[n].slot}] ${n}${profiles[n]?.speaker_label ? ` — ${profiles[n].speaker_label}` : ''}` : n,
+								nameNew: n,
+								value: n,
+							}))}/>
+						<button
+							title="Edit Profiles"
+							disabled=${!!cancel}
+							class="symbol-button"
+							onClick=${() => toggleModal("profiles")}>
+							<${SVG_Settings} style=${{ 'width':'.95em','transform':'translate(-50%, -45%)' }}/>
+						</button>
+					`}
+		</div>
+		<div className="buttons hotkey-legend" style=${{ flexWrap: 'wrap', gap: '4px', marginTop: '4px' }}>
 					${[1,2,3,4,5,6,7,8,9].map(n => {
 						const entry = Object.entries(profiles).find(([_, p]) => p?.slot === n);
-						if (!entry) return null;
-						const [name, p] = entry;
-						return html`<button
+						if (entry) {
+							const [name, p] = entry;
+							return html`<button
+								key=${n}
+								title=${`Fire profile "${name}" (Ctrl+Shift+${n})`}
+								disabled=${!!cancel}
+								style=${{ flex: '1 1 auto', minWidth: '40px' }}
+								onClick=${() => fireProfile(name, { announce: true })}>
+								${n}: ${p.speaker_label || name}
+							</button>`;
+						}
+						return html`<span
 							key=${n}
-							title=${`Fire profile "${name}" (Ctrl+Shift+${n})`}
-							disabled=${!!cancel}
-							style=${{ flex: '1 1 auto', minWidth: '40px' }}
-							onClick=${() => fireProfile(name)}>
-							${n}: ${p.speaker_label || name}
-						</button>`;
+							title="Assign a profile to slot ${n} in the Profiles modal (Ctrl+Shift+${n})"
+							style=${{ flex: '1 1 auto', minWidth: '40px', padding: '4px 8px', fontSize: '0.75em', opacity: 0.3, textAlign: 'center', color: 'var(--color-text-hint)', background: 'var(--color-bg-disabled-2)', borderRadius: '3px' }}>
+							${n}: —
+						</span>`;
 					})}
-				</div>`}
+				</div>
 			<div className="buttons">
 				<button
 					title="Run next prediction (Ctrl + Enter)"
@@ -9922,9 +10020,9 @@ async function main() {
 	const profileStorage = new ProfileStorage(dbAdapter);
 	await profileStorage.init();
 
-	createRoot(document.body).render(html`
-		<${ErrorBoundary} FallbackComponent=${CrashScreenFallback}>
-			<${App}
+	function renderApp({ showToast }) {
+		return html`
+			<${AppWrapper}
 				sessionStorage=${sessionStorage}
 				templateStorage=${templateStorage}
 				themeStorage=${themeStorage}
@@ -9933,9 +10031,18 @@ async function main() {
 				useDBTemplates=${(initialState => useStorageState(templateStorage, initialState))}
 				useDBThemes=${(initialState => useStorageState(themeStorage, initialState))}
 				useDBProfiles=${(initialState => useStorageState(profileStorage, initialState))}
-				isMikupadEndpoint=${isMikupadEndpoint}/>
-		</${ErrorBoundary}>`);
-}
+				isMikupadEndpoint=${isMikupadEndpoint}
+				showToast=${showToast}
+			/>`;
+	}
+
+	createRoot(document.body).render(html`
+			<${ErrorBoundary} FallbackComponent=${CrashScreenFallback}>
+				<${ToastProvider}>
+					${renderApp}
+				</${ToastProvider}>
+			</${ErrorBoundary}>`);
+	}
 
 main();
 </script>
