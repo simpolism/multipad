@@ -4311,9 +4311,9 @@ function ProfilesModal({ isOpen, closeModal, profileStorage, profiles, setProfil
 	];
 
 	const slotOptions = [
-		{ name: '(no slot)', value: 'null' },
-		...[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => ({ name: String(n), value: String(n) })),
-	];
+			{ name: '(no slot)', value: null },
+			...[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => ({ name: String(n), value: n })),
+		];
 
 	return html`
 		<${Modal} isOpen=${isOpen} onClose=${closeModal}
@@ -4343,10 +4343,10 @@ function ProfilesModal({ isOpen, closeModal, profileStorage, profiles, setProfil
 							value=${editing.name}
 							onValueChange=${(v) => commit({ ...editing, name: v || editing.name })}/>
 						<${SelectBox} label="Hotkey Slot (Ctrl+Shift+N)"
-							disabled=${!!cancel}
-							value=${editing.slot == null ? 'null' : String(editing.slot)}
-							onValueChange=${(v) => update('slot', v === 'null' ? null : Number(v))}
-							options=${slotOptions}/>
+										disabled=${!!cancel}
+										value=${JSON.stringify(editing.slot)}
+										onValueChange=${(v) => update('slot', v)}
+										options=${slotOptions}/>
 						<${InputBox} label="Speaker Label"
 							readOnly=${!!cancel}
 							value=${editing.speaker_label || ''}
@@ -4359,10 +4359,10 @@ function ProfilesModal({ isOpen, closeModal, profileStorage, profiles, setProfil
 							value=${editing.endpoint || ''}
 							onValueChange=${(v) => update('endpoint', v)}/>
 						<${SelectBox} label="API Type"
-							disabled=${!!cancel}
-							value=${editing.endpointAPI ?? API_OPENAI_COMPAT}
-							onValueChange=${(v) => update('endpointAPI', v)}
-							options=${apiOptions}/>
+										disabled=${!!cancel}
+										value=${JSON.stringify(editing.endpointAPI ?? API_OPENAI_COMPAT)}
+										onValueChange=${(v) => update('endpointAPI', v)}
+										options=${apiOptions}/>
 					</div>
 					<div className="hbox">
 						<${InputBox} label="API Key"
@@ -4380,13 +4380,13 @@ function ProfilesModal({ isOpen, closeModal, profileStorage, profiles, setProfil
 							value=${!!editing.useChatAPI}
 							onValueChange=${(v) => update('useChatAPI', v)}/>
 						<${SelectBox} label="Prompt Format"
-							disabled=${!!cancel}
-							value=${editing.prompt_format || 'default'}
-							onValueChange=${(v) => update('prompt_format', v)}
-							options=${[
-								{ name: 'Default', value: 'default' },
-								{ name: 'CLI Simulation (Janus-style)', value: 'cli_sim' },
-							]}/>
+										disabled=${!!cancel}
+										value=${JSON.stringify(editing.prompt_format || 'default')}
+										onValueChange=${(v) => update('prompt_format', v)}
+										options=${[
+											{ name: 'Default', value: 'default' },
+											{ name: 'CLI Simulation (Janus-style)', value: 'cli_sim' },
+										]}/>
 					</div>
 					${editing.prompt_format === 'cli_sim' && html`
 						<${InputBox} label="CLI User Prompt"
