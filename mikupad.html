@@ -8000,19 +8000,19 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 				setUseBasicStoppingMode(false);
 			}
 		} catch { /* invalid JSON — leave stopping mode alone */ }
-		showToast(`Switched to profile "${Object.entries(profiles).find(([_, p]) => p === profile)?.[0] || 'unknown'}"`);
 	}
 
 	// Apply a profile and trigger a predict on the next render tick,
-	// after the state updates have committed.
-	function fireProfile(profileName) {
-		const profile = profiles[profileName];
-		if (!profile) return;
-		setSelectedProfile(profileName);
-		applyProfile(profile);
-		// Defer predict() so the state updates above have committed.
-		setTriggerPredict(true);
-	}
+		// after the state updates have committed.
+		function fireProfile(profileName, { announce = false } = {}) {
+			const profile = profiles[profileName];
+			if (!profile) return;
+			setSelectedProfile(profileName);
+			applyProfile(profile);
+			if (announce) showToast(`Fired profile "${profileName}"`);
+			// Defer predict() so the state updates above have committed.
+			setTriggerPredict(true);
+		}
 
 	// Helper: predict against the active profile if one is selected,
 	// otherwise plain predict() with current session state.
@@ -8506,12 +8506,12 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 					const slot = slotMap[key];
 					if (!slot) { preventDefaultAction = false; break; }
 					const entry = Object.entries(profiles).find(([_, p]) => p?.slot === slot);
-					if (entry) {
-						fireProfile(entry[0]);
-					} else {
-						preventDefaultAction = false;
-					}
-					break;
+								if (entry) {
+									fireProfile(entry[0], { announce: true });
+								} else {
+									preventDefaultAction = false;
+								}
+								break;
 				}
 				default:
 					keyState.current = e;
@@ -9575,47 +9575,47 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 					</button>
 				</div>
 			` : html`
-				<${SelectBoxTemplate}
-					label="Profile (Ctrl+Enter fires this)"
-					disabled=${!!cancel}
-					value=${selectedProfile}
-					onValueChange=${(v) => { setSelectedProfile(v); applyProfile(profiles[v]); }}
-					options=${Object.keys(profiles).sort().map(n => ({
-						name: profiles[n]?.slot ? `[${profiles[n].slot}] ${n}${profiles[n]?.speaker_label ? ` — ${profiles[n].speaker_label}` : ''}` : n,
-						nameNew: n,
-						value: n,
-					}))}/>
-				<button
-					title="Edit Profiles"
-					disabled=${!!cancel}
-					class="symbol-button"
-					onClick=${() => toggleModal("profiles")}>
-					<${SVG_Settings} style=${{ 'width':'.95em','transform':'translate(-50%, -45%)' }}/>
-				</button>
-			`}
+						<${SelectBoxTemplate}
+							label="Profile (Ctrl+Enter fires this)"
+							disabled=${!!cancel}
+							value=${selectedProfile}
+							onValueChange=${(v) => { setSelectedProfile(v); applyProfile(profiles[v]); showToast(`Switched to profile "${v}"`); }}
+							options=${Object.keys(profiles).sort().map(n => ({
+								name: profiles[n]?.slot ? `[${profiles[n].slot}] ${n}${profiles[n]?.speaker_label ? ` — ${profiles[n].speaker_label}` : ''}` : n,
+								nameNew: n,
+								value: n,
+							}))}/>
+						<button
+							title="Edit Profiles"
+							disabled=${!!cancel}
+							class="symbol-button"
+							onClick=${() => toggleModal("profiles")}>
+							<${SVG_Settings} style=${{ 'width':'.95em','transform':'translate(-50%, -45%)' }}/>
+						</button>
+					`}
 		</div>
 		<div className="buttons hotkey-legend" style=${{ flexWrap: 'wrap', gap: '4px', marginTop: '4px' }}>
-			${[1,2,3,4,5,6,7,8,9].map(n => {
-				const entry = Object.entries(profiles).find(([_, p]) => p?.slot === n);
-				if (entry) {
-					const [name, p] = entry;
-					return html`<button
-						key=${n}
-						title=${`Fire profile "${name}" (Ctrl+Shift+${n})`}
-						disabled=${!!cancel}
-						style=${{ flex: '1 1 auto', minWidth: '40px' }}
-						onClick=${() => fireProfile(name)}>
-						${n}: ${p.speaker_label || name}
-					</button>`;
-				}
-				return html`<span
-					key=${n}
-					title="Assign a profile to slot ${n} in the Profiles modal (Ctrl+Shift+${n})"
-					style=${{ flex: '1 1 auto', minWidth: '40px', padding: '4px 8px', fontSize: '0.75em', opacity: 0.3, textAlign: 'center', color: 'var(--color-text-hint)', background: 'var(--color-bg-disabled-2)', borderRadius: '3px' }}>
-					${n}: —
-				</span>`;
-			})}
-		</div>
+					${[1,2,3,4,5,6,7,8,9].map(n => {
+						const entry = Object.entries(profiles).find(([_, p]) => p?.slot === n);
+						if (entry) {
+							const [name, p] = entry;
+							return html`<button
+								key=${n}
+								title=${`Fire profile "${name}" (Ctrl+Shift+${n})`}
+								disabled=${!!cancel}
+								style=${{ flex: '1 1 auto', minWidth: '40px' }}
+								onClick=${() => fireProfile(name, { announce: true })}>
+								${n}: ${p.speaker_label || name}
+							</button>`;
+						}
+						return html`<span
+							key=${n}
+							title="Assign a profile to slot ${n} in the Profiles modal (Ctrl+Shift+${n})"
+							style=${{ flex: '1 1 auto', minWidth: '40px', padding: '4px 8px', fontSize: '0.75em', opacity: 0.3, textAlign: 'center', color: 'var(--color-text-hint)', background: 'var(--color-bg-disabled-2)', borderRadius: '3px' }}>
+							${n}: —
+						</span>`;
+					})}
+				</div>
 			<div className="buttons">
 				<button
 					title="Run next prediction (Ctrl + Enter)"
