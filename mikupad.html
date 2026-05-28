@@ -1329,7 +1329,7 @@ body.markdown-preview-on #markdown-preview {
 <style id="dynamic-theme-style"></style>
 <script type="module">
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { html } from 'htm/react';
 import { SVResizeObserver } from 'scrollview-resize';
@@ -6810,7 +6810,43 @@ function CrashScreenFallback({ error }) {
   `;
 }
 
-export function App({ sessionStorage, templateStorage, themeStorage, profileStorage, useSessionState, useDBTemplates, useDBThemes, useDBProfiles, isMikupadEndpoint }) {
+// ToastProvider component - manages toast state and provides showToast to children
+function ToastProvider({ children }) {
+	const [toasts, setToasts] = useState([]);
+	const showToast = (message) => {
+		const id = Date.now() + Math.random();
+		setToasts(prev => [...prev, { id, message }]);
+		setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000);
+	};
+	return html`
+		<${Fragment}>
+			${children({ showToast })}
+			<div class="toast-container" role="region" aria-label="Notifications" aria-live="polite">
+				${toasts.map(t => html`<div key=${t.id} class="toast">${t.message}</div>`)}
+			</div>
+		</${Fragment}>
+	`;
+}
+
+// AppWrapper - wraps App with showToast from ToastProvider context
+function AppWrapper({ sessionStorage, templateStorage, themeStorage, profileStorage, useSessionState, useDBTemplates, useDBThemes, useDBProfiles, isMikupadEndpoint, showToast }) {
+	return html`
+		<${App}
+			sessionStorage=${sessionStorage}
+			templateStorage=${templateStorage}
+			themeStorage=${themeStorage}
+			profileStorage=${profileStorage}
+			useSessionState=${useSessionState}
+			useDBTemplates=${useDBTemplates}
+			useDBThemes=${useDBThemes}
+			useDBProfiles=${useDBProfiles}
+			isMikupadEndpoint=${isMikupadEndpoint}
+			showToast=${showToast}
+		/>
+	`;
+}
+
+export function App({ sessionStorage, templateStorage, themeStorage, profileStorage, useSessionState, useDBTemplates, useDBThemes, useDBProfiles, isMikupadEndpoint, showToast }) {
 	const promptArea = useRef();
 	const promptOverlay = useRef();
 	const undoStack = useRef([]);
@@ -6917,15 +6953,8 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 	const [promptPreviewReroll, setPromptPreviewReroll] = useState(0);
 	const [showPromptPreview, setShowPromptPreview] = useSessionState('promptPreview', defaultPresets.promptPreview);
 	const [promptPreviewTokens, setPromptPreviewTokens] = useSessionState('promptPreviewTokens', defaultPresets.promptPreviewTokens);
-	const [toasts, setToasts] = useState([]);
 
-	// Toast helper
-	function showToast(message) {
-		const id = Date.now() + Math.random();
-		setToasts(prev => [...prev, { id, message }]);
-		setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000);
-	}
-    const [currentThemeName, setCurrentThemeName] = usePersistentState('themeName', (() => {
+	    const [currentThemeName, setCurrentThemeName] = usePersistentState('themeName', (() => {
 		// map old theme to new theme system
 		switch (__theme) {
 		case 1:
@@ -9991,25 +10020,29 @@ async function main() {
 	const profileStorage = new ProfileStorage(dbAdapter);
 	await profileStorage.init();
 
-createRoot(document.body).render(html`
-		<${ErrorBoundary} FallbackComponent=${CrashScreenFallback}>
-			<div>
-				<${App}
-					sessionStorage=${sessionStorage}
-					templateStorage=${templateStorage}
-					themeStorage=${themeStorage}
-					profileStorage=${profileStorage}
-					useSessionState=${(name, initialState) => useSessionState(sessionStorage, name, initialState)}
-					useDBTemplates=${(initialState => useStorageState(templateStorage, initialState))}
-					useDBThemes=${(initialState => useStorageState(themeStorage, initialState))}
-					useDBProfiles=${(initialState => useStorageState(profileStorage, initialState))}
-					isMikupadEndpoint=${isMikupadEndpoint}/>
-				<div class="toast-container" role="region" aria-label="Notifications" aria-live="polite">
-					${toasts.map(t => html`<div key=${t.id} class="toast">${t.message}</div>`)}
-				</div>
-			</div>
-		</${ErrorBoundary}>`);
-}
+	function renderApp({ showToast }) {
+		return html`
+			<${AppWrapper}
+				sessionStorage=${sessionStorage}
+				templateStorage=${templateStorage}
+				themeStorage=${themeStorage}
+				profileStorage=${profileStorage}
+				useSessionState=${(name, initialState) => useSessionState(sessionStorage, name, initialState)}
+				useDBTemplates=${(initialState => useStorageState(templateStorage, initialState))}
+				useDBThemes=${(initialState => useStorageState(themeStorage, initialState))}
+				useDBProfiles=${(initialState => useStorageState(profileStorage, initialState))}
+				isMikupadEndpoint=${isMikupadEndpoint}
+				showToast=${showToast}
+			/>`;
+	}
+
+	createRoot(document.body).render(html`
+			<${ErrorBoundary} FallbackComponent=${CrashScreenFallback}>
+				<${ToastProvider}>
+					${renderApp}
+				</${ToastProvider}>
+			</${ErrorBoundary}>`);
+	}
 
 main();
 </script>
