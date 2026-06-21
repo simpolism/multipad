@@ -33,6 +33,22 @@
 
 html {
 	--color-miku: #009bb3;
+
+	/* Semantic status colors — derived from the base ramp, overrideable per-theme.
+	   These exist so error/success/warning states respond to theme switches
+	   instead of being hardcoded hex values scattered across the stylesheet. */
+	--color-error-bg: color-mix(in oklch, #c0392b 50%, var(--color-base-30));
+	--color-error-fg: oklch(0.75 0.18 25);
+	--color-danger-bg: #c0392b;
+	--color-danger-bg-hover: #a93226;
+	--color-danger-bg-active: #922b21;
+	--color-success: oklch(0.70 0.18 145);
+	--color-warning: oklch(0.82 0.16 90);
+	--color-overlay-bg: color-mix(in oklch, var(--color-base-0) 80%, transparent);
+	--color-tooltip-bg: color-mix(in oklch, var(--color-base-0) 90%, transparent);
+	--color-shadow-strong: color-mix(in oklch, var(--color-base-0) 60%, transparent);
+	--color-shadow-soft: color-mix(in oklch, var(--color-base-0) 25%, transparent);
+
 	--color-base-0: oklch(0.20 0.02 60);
 	--color-base-10: color-mix(in oklch, var(--color-base-100) 10%, var(--color-base-0));
 	--color-base-20: color-mix(in oklch, var(--color-base-100) 20%, var(--color-base-0));
@@ -212,7 +228,7 @@ body {
 	background: color-mix(in srgb, var(--bg-color, var(--color-miku)) 10%, transparent);
 }
 #prompt-container #prompt-overlay > .machine.erase {
-	background: color-mix(in srgb, #FF0000 10%, transparent);
+	background: color-mix(in srgb, var(--color-error-fg) 10%, transparent);
 }
 #prompt-container #prompt-overlay > .machine.current {
 	border-radius: 3px;
@@ -243,7 +259,7 @@ body {
 	display: flex;
 	transform: translate(-50%, -100%);
 	border-radius: 5px;
-	box-shadow: 0 1px 1px 1px #00000033;
+	box-shadow: 0 1px 1px 1px var(--color-shadow-soft);
 	z-index: 9999;
 
 	overflow-x: auto;
@@ -289,7 +305,7 @@ body {
 .widget-body {
 	z-index: 10;
 	color: var(--color-text-ui);
-	box-shadow: #0004 2px 2px 6px 2px;
+	box-shadow: var(--color-shadow-strong) 2px 2px 6px 2px;
 }
 
 .widget-title-bar {
@@ -374,7 +390,7 @@ body {
 	left: 0;
 	width: 100%;
 	height: 100%;
-	background: rgba(0, 0, 0, 0.65);
+	background: var(--color-overlay-bg);
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -744,10 +760,10 @@ body {
 }
 
 .InputBox > div > input.mixed-content {
-	outline: 1px solid yellow;
+	outline: 1px solid var(--color-warning);
 }
 .InputBox > div > input.rejected {
-	outline: 1px solid #ff3131;
+	outline: 1px solid var(--color-error-fg);
 }
 
 .InputBox > div > button {
@@ -859,7 +875,7 @@ body {
 	white-space: pre-wrap;
 	pointer-events: none;
 	width: 95%;
-	background-color: #000000AA;
+	background-color: var(--color-tooltip-bg);
 	color: var(--color-text-ui);
 	text-align: center;
 	padding: 5px 4px;
@@ -882,9 +898,9 @@ body {
 .error-text {
 	width: max-content;
 	text-align: center;
-	background: #4E3534;
+	background: var(--color-error-bg);
 	border-radius: 4px;
-	color: #FF8080;
+	color: var(--color-error-fg);
 	margin-left: auto;
 	margin-right: auto;
 	padding: 2px 10px;
@@ -955,7 +971,7 @@ button {
 	white-space: nowrap;
 	pointer-events: none;
 	z-index: 10;
-	box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+	box-shadow: 0 1px 3px var(--color-shadow-soft);
 }
 @media (max-width: 767.98px) {
 	.editor-toolbar {
@@ -1055,15 +1071,15 @@ button:focus-visible {
 }
 
 .btn--danger, .button-danger {
-	background: #c0392b;
+	background: var(--color-danger-bg);
 	color: #fff;
 	font-weight: 600;
 }
 .btn--danger:hover, .button-danger:hover {
-	background: #a93226;
+	background: var(--color-danger-bg-hover);
 }
 .btn--danger:active, .button-danger:active {
-	background: #922b21;
+	background: var(--color-danger-bg-active);
 }
 .btn--danger:disabled, .button-danger:disabled {
 	background: var(--color-bg-disabled-1);
@@ -1087,7 +1103,7 @@ button:focus-visible {
 }
 
 button.processing {
-	outline: 1px solid rgba(255, 255, 255, 0.5);
+	outline: 1px solid var(--color-shadow-strong);
 	animation: .5s ease-out infinite alternate processing;
 }
 @keyframes processing {
@@ -1095,7 +1111,7 @@ button.processing {
 	to { outline-width: 4px; }
 }
 button.completing {
-	outline: 1px solid limegreen;
+	outline: 1px solid var(--color-success);
 	animation: .5s ease-out infinite alternate completing;
 }
 @keyframes completing {
@@ -1237,10 +1253,10 @@ button.completing {
 	right: 0;
 	min-height: 0;
 
-	background-color: #4E3534;
-	color: #FF8080;
+	background-color: var(--color-error-bg);
+	color: var(--color-error-fg);
 	text-align: center;
-	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+	box-shadow: 0 4px 6px var(--color-shadow-soft);
 }
 
 #error-bar div {
@@ -1308,7 +1324,7 @@ button.completing {
 	background-color: var(--color-bg-popover-1);
 	border: 1px solid var(--color-bg-popover-2);
 	border-radius: 4px;
-	box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+	box-shadow: 0px 4px 8px var(--color-shadow-soft);
 	padding: 10px;
 	z-index: 1000;
 	display: flex;
@@ -1322,7 +1338,7 @@ button.completing {
 	background: var(--color-bg-popover-1);
 	color: var(--color-text-ui);
 	/* border: 1px solid #ccc; */
-	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+	box-shadow: 0 4px 6px var(--color-shadow-soft);
 	border-radius: 4px;
 	/* overflow: hidden; */
 	padding-top: 4px;
@@ -1411,8 +1427,8 @@ body.markdown-preview-on #markdown-preview {
     left: 0;
     width: 100vw;
     height: 100vh;
-    background-color: rgba(20, 20, 30, 0.95);
-    color: #f0f0f0;
+    background-color: var(--color-overlay-bg);
+    color: var(--color-text-ui);
     font-family: monospace;
     padding: 2em;
     z-index: 99999;
@@ -1420,15 +1436,15 @@ body.markdown-preview-on #markdown-preview {
     box-sizing: border-box;
 }
 #crash-screen h1 {
-    color: #ff8080;
-    border-bottom: 1px solid #ff8080;
+    color: var(--color-error-fg);
+    border-bottom: 1px solid var(--color-error-fg);
     padding-bottom: 0.5em;
 }
 #crash-screen pre {
     white-space: pre-wrap;
     word-wrap: break-word;
     margin-top: 1em;
-    background-color: #333;
+    background-color: var(--color-bg-input-2);
     padding: 1em;
     border-radius: 5px;
 }
