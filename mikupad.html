@@ -1008,51 +1008,80 @@ button:focus-visible {
 
 /* Button variants: primary (main action), danger (destructive/stop),
    ghost (icon + secondary actions). Applied on top of base `button` styles. */
-.button-primary {
+
+/* Unified .btn base — shared by all sidebar/modal text buttons.
+   Layered with .btn--primary / .btn--secondary / .btn--danger / .btn--icon
+   modifiers. Backward-compat: existing .button-* aliases kept. */
+.btn {
+	background: var(--color-bg-input-1);
+	color: var(--color-text-ui);
+	font-weight: 500;
+	border-radius: 2px;
+}
+.btn:hover {
+	background: var(--color-bg-highlight-1);
+}
+.btn:active {
+	background: var(--color-bg-highlight-2);
+}
+.btn:disabled {
+	background: var(--color-bg-disabled-1);
+	opacity: 0.8;
+}
+.btn:focus-visible {
+	outline: 1px solid var(--color-base-0);
+	outline-offset: 1px;
+}
+
+.btn--secondary {
+	/* default .btn appearance; kept as explicit modifier for clarity */
+}
+
+.btn--primary, .button-primary {
 	background: var(--color-miku);
 	color: #fff;
 	font-weight: 600;
 }
-.button-primary:hover {
+.btn--primary:hover, .button-primary:hover {
 	background: color-mix(in oklch, var(--color-miku) 85%, var(--color-base-0));
 }
-.button-primary:active {
+.btn--primary:active, .button-primary:active {
 	background: color-mix(in oklch, var(--color-miku) 70%, var(--color-base-0));
 }
-.button-primary:disabled {
+.btn--primary:disabled, .button-primary:disabled {
 	background: var(--color-bg-disabled-1);
 	color: var(--color-text-disabled);
 	opacity: 0.8;
 }
 
-.button-danger {
+.btn--danger, .button-danger {
 	background: #c0392b;
 	color: #fff;
 	font-weight: 600;
 }
-.button-danger:hover {
+.btn--danger:hover, .button-danger:hover {
 	background: #a93226;
 }
-.button-danger:active {
+.btn--danger:active, .button-danger:active {
 	background: #922b21;
 }
-.button-danger:disabled {
+.btn--danger:disabled, .button-danger:disabled {
 	background: var(--color-bg-disabled-1);
 	color: var(--color-text-disabled);
 	opacity: 0.8;
 }
 
-.button-ghost {
+.btn--icon, .button-ghost {
 	background: transparent;
 	color: var(--color-text-ui);
 }
-.button-ghost:hover {
+.btn--icon:hover, .button-ghost:hover {
 	background: var(--color-bg-highlight-1);
 }
-.button-ghost:active {
+.btn--icon:active, .button-ghost:active {
 	background: var(--color-bg-highlight-2);
 }
-.button-ghost:disabled {
+.btn--icon:disabled, .button-ghost:disabled {
 	background: transparent;
 	opacity: 0.4;
 }
@@ -2812,10 +2841,10 @@ function Sessions({ sessionStorage, disabled }) {
 				`)}
 			</ul>
 			<div className="vbox">
-				<button disabled=${disabled} onClick=${startCreateSession}>Create</button>
-				<button disabled=${disabled} onClick=${importSession}>Import</button>
-				<button disabled=${disabled} onClick=${exportSession}>Export</button>
-				<button disabled=${disabled} onClick=${cloneSession}>Clone</button>
+				<button class="btn btn--secondary" disabled=${disabled} onClick=${startCreateSession}>Create</button>
+				<button class="btn btn--secondary" disabled=${disabled} onClick=${importSession}>Import</button>
+				<button class="btn btn--secondary" disabled=${disabled} onClick=${exportSession}>Export</button>
+				<button class="btn btn--secondary" disabled=${disabled} onClick=${cloneSession}>Clone</button>
 			</div>
 		</div>`;
 }
@@ -4439,8 +4468,8 @@ function ProfilesModal({ isOpen, closeModal, profileStorage, profiles, setProfil
 			title="Endpoint Profiles"
 			description="Each profile bundles an endpoint, model, API key, system prompt, and a sampler snapshot. Hit Predict (or Ctrl+Shift+N for slotted profiles) to fire the active profile against the buffer.">
 			<div class="instructTemplatesImportExport">
-				<button title="Import profiles JSON" disabled=${!!cancel} onClick=${importProfiles}>Import</button>
-				<button title="Export profiles JSON" disabled=${!!cancel || profileNames.length === 0} onClick=${exportProfiles}>Export</button>
+				<button class="btn btn--secondary" title="Import profiles JSON" disabled=${!!cancel} onClick=${importProfiles}>Import</button>
+				<button class="btn btn--secondary" title="Export profiles JSON" disabled=${!!cancel || profileNames.length === 0} onClick=${exportProfiles}>Export</button>
 			</div>
 			<div className="buttons instructTemplateSidebar">
 				<${SelectBoxTemplate}
@@ -4706,11 +4735,13 @@ function InstructModal({ isOpen, closeModal, predict, cancel, modalState, templa
                     <div className="vbox">
 						${!cancel && html`
 							<button
+								class="btn btn--primary"
 								onClick=${handlePredictInModal}>
 								Predict
 							</button>`}
 						${cancel && html`
 							<button
+								class="btn btn--danger"
 								onClick=${() => cancel()}
 								className=${cancel && !props.sessionEndpointConnecting ? (props.predictStartTokens === props.tokens ? 'processing' : 'completing') : ''}>
 								Cancel
@@ -4728,12 +4759,14 @@ function InstructModal({ isOpen, closeModal, predict, cancel, modalState, templa
 						className="wi-textarea"/>
 
 					<button
+						class="btn btn--secondary"
 						onClick=${() => finish(false)}
 						disabled=${!!cancel}>
 						Insert At Cursor
 					</button>
 
 					<button
+						class="btn btn--secondary"
 						onClick=${() => finish(true)}
 						disabled=${!modalState.selectedText || !!cancel}>
 						Replace Selected
@@ -5095,8 +5128,8 @@ function AIHordeSettingsModal({ isOpen, closeModal, endpoint, endpointAPIKey, se
 					${!loading && !filteredModels.length && html`<div style=${{padding: '1em'}}>No models found.</div>`}
                 </div>
                 <div className="buttons">
-                    <button onClick=${handleOk}>OK</button>
-                    <button onClick=${closeModal}>Cancel</button>
+                    <button class="btn btn--primary" onClick=${handleOk}>OK</button>
+                    <button class="btn btn--secondary" onClick=${closeModal}>Cancel</button>
                 </div>
             </div>
         </${Modal}>`;
@@ -5429,22 +5462,23 @@ function SearchAndReplaceWidget({ isOpen, closeWidget, id, children, promptArea,
 						${currentIndex >= 0 ? (currentIndex+1) + " /" : ""} ${ searchTerm != "" ? numMatches + (numMatches == 1 ? " Match" : " Matches") : ""}
 					</div>
 					<button
-						class="findButton"
+						class="btn btn--secondary findButton"
 						title="Find Previous Match"
 						onClick=${() => handleFindPrev(searchAndReplaceMode,searchTerm,searchFlags)}>
 						<${SVG_ArrowUp}/>
 					</button>
 					<button
-						class="findButton"
+						class="btn btn--secondary findButton"
 						title="Find Next Match"
 						onClick=${() => handleFindNext(searchAndReplaceMode,searchTerm,searchFlags)}>
-							<${SVG_ArrowDown}/>
+						<${SVG_ArrowDown}/>
 					</button>
 					<button
+						class="btn btn--primary"
 						title="Replace All Matches"
 						disabled=${!!cancel}
 						onClick=${() => handleSearchAndReplace(searchAndReplaceMode,searchTerm,searchFlags,replaceTerm)}>
-							Replace All
+						Replace All
 					</button>
 				</div>
 				${!!searchAndReplaceError && html`
@@ -9192,7 +9226,7 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 				<button
 					title="Manage Themes"
 					disabled=${!!cancel}
-					class="symbol-button"
+					class="symbol-button btn btn--icon"
 					onClick=${() => toggleModal("themes")}>
 					<${SVG_Settings} style=${{ 'width':'.95em','transform':'translate(-50%, -45%)' }}/>
 				</button>
@@ -9229,7 +9263,7 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 							value=${endpointAPIKey}
 							onValueChange=${setEndpointAPIKey}/>
 						<button title="${!showAPIKey ? "Show API Key" : "Hide API Key"}"
-							className="eye-button"
+							className="eye-button btn btn--icon"
 							disabled=${!!cancel}
 							onClick=${() => setShowAPIKey(!showAPIKey)}>
 							${!showAPIKey ? html`<${SVG_ShowKey}/>`
@@ -9249,7 +9283,7 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 							value=${endpointModel || 'Any'}
 							placeholder="Any"
 						/>
-						<button onClick=${() => toggleModal("horde")}>Configure AI Horde</button>
+						<button class="btn btn--secondary" onClick=${() => toggleModal("horde")}>Configure AI Horde</button>
 					</div>`}
 				${endpointAPI != API_AI_HORDE && html`
 					${endpointAPI == API_LLAMA_CPP && html`
@@ -9280,28 +9314,28 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 					<button
 						title="Edit Instruct Templates"
 						disabled=${!!cancel}
-						class="symbol-button"
+						class="symbol-button btn btn--icon"
 						onClick=${() => toggleModal("instructTemplates")}>
 						<${SVG_Settings} style=${{ 'width':'.95em','transform':'translate(-50%, -45%)' }}/>
 					</button>
 					<button
 						title="Insert System Prompt Template"
 						disabled=${!!cancel}
-						class="symbol-button"
+						class="symbol-button btn btn--icon"
 						onClick=${() => insertTemplate("sys")}>
 						<${SVG_SysPrompt} style=${{ 'width':'.9em' }}/>
 					</button>
 					<button
 						title="Insert Instruct Template"
 						disabled=${!!cancel}
-						class="symbol-button"
+						class="symbol-button btn btn--icon"
 						onClick=${() => insertTemplate("inst")}>
 						<${SVG_instTemplate} style=${{ 'height':'1.05em','transform':'translate(-50%, -60%)' }}/>
 					</button>
 					<button
 						title="Toggle Chat Mode ${ chatMode ? "Off" : "On"}"
 						disabled=${!!cancel || useChatAPI}
-						class="symbol-button"
+						class="symbol-button btn btn--icon"
 						onClick=${() => setChatMode( (prevState) => !prevState)}>
 						${ (chatMode || useChatAPI) ?
 							html`<${SVG_ChatMode} style=${{ 'width':'.9em' }} />` :
@@ -9338,11 +9372,12 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 						`}
 					</div>
 					<button
+						class="btn btn--icon"
 						title=${useBasicStoppingMode ? "Switch to Advanced Mode" : "Switch to Basic Mode"}
 						disabled=${!!cancel}
 						onClick=${() => setUseBasicStoppingMode(prev => !prev)}>
 						${useBasicStoppingMode ? "A" : "B"}
-					</button>
+						</button>
 				</div>
 			</${CollapsibleGroup}>
 			<${CollapsibleGroup} label="Sampling" expanded menu=${html`
@@ -9543,15 +9578,17 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 							value=${bannedTokens}
 							onValueChange=${setBannedTokens}/>`}
 					<button
+						class="btn btn--secondary"
 						disabled=${!!cancel}
 						onClick=${() => toggleModal("grammar")}>
 						Grammar
 						</button>`}
-				<button
-					disabled=${!!cancel}
-					onClick=${() => toggleModal("bias")}>
-					Logit Bias
-					</button>
+					<button
+						class="btn btn--secondary"
+						disabled=${!!cancel}
+						onClick=${() => toggleModal("bias")}>
+						Logit Bias
+						</button>
 				${(!openaiPresets || endpointAPI != API_OPENAI_COMPAT) && html`
 					<${Checkbox} label="Ignore <eos>"
 						disabled=${!!cancel} value=${ignoreEos} onValueChange=${setIgnoreEos}/>`}
@@ -9593,16 +9630,18 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 				</label>
 				<button
 					id="viewWorldInfo"
+					class="btn btn--secondary"
 					disabled=${!!cancel}
 					onClick=${() => toggleModal("wi")}>
 					Show World Info
-				</button>
-				<button
+					</button>
+					<button
 					id="viewContext"
+					class="btn btn--secondary"
 					disabled=${!!cancel}
 					onClick=${() => toggleModal("context")}>
 					Show Context
-				</button>
+					</button>
 
 			</${CollapsibleGroup}>
 			${!!tokens && html`
@@ -9623,7 +9662,7 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 				<button
 					title="Edit Profiles"
 					disabled=${!!cancel}
-					class="symbol-button"
+					class="symbol-button btn btn--icon"
 					onClick=${() => toggleModal("profiles")}>
 					<${SVG_Settings} style=${{ 'width':'.95em','transform':'translate(-50%, -45%)' }}/>
 				</button>
