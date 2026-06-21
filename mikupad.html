@@ -952,7 +952,9 @@ body {
 /* Unified status messaging slot. Used for inline errors in the sidebar
    bottom and inside modals/widgets. .error-text is kept as alias. */
 .status-bar,
-.error-text {
+.status-bar--inline,
+.error-text,
+.error-text--inline {
 	display: block;
 	width: max-content;
 	max-width: 100%;
@@ -4866,9 +4868,8 @@ function InstructModal({ isOpen, closeModal, predict, cancel, modalState, templa
 							</button>`}
 						${cancel && html`
 							<button
-								class="btn btn--danger"
-								onClick=${() => cancel()}
-								className=${cancel && !props.sessionEndpointConnecting ? (props.predictStartTokens === props.tokens ? 'processing' : 'completing') : ''}>
+								className=${`btn btn--danger ${cancel && !props.sessionEndpointConnecting ? (props.predictStartTokens === props.tokens ? 'processing' : 'completing') : ''}`}
+								onClick=${() => cancel()}>
 								Cancel
 							</button>`}
 						${!!lastError && html`
