@@ -938,6 +938,58 @@ button:disabled {
 button:focus-visible {
 	outline: 1px solid var(--color-base-0);
 }
+
+/* Button variants: primary (main action), danger (destructive/stop),
+   ghost (icon + secondary actions). Applied on top of base `button` styles. */
+.button-primary {
+	background: var(--color-miku);
+	color: #fff;
+	font-weight: 600;
+}
+.button-primary:hover {
+	background: color-mix(in oklch, var(--color-miku) 85%, var(--color-base-0));
+}
+.button-primary:active {
+	background: color-mix(in oklch, var(--color-miku) 70%, var(--color-base-0));
+}
+.button-primary:disabled {
+	background: var(--color-bg-disabled-1);
+	color: var(--color-text-disabled);
+	opacity: 0.8;
+}
+
+.button-danger {
+	background: #c0392b;
+	color: #fff;
+	font-weight: 600;
+}
+.button-danger:hover {
+	background: #a93226;
+}
+.button-danger:active {
+	background: #922b21;
+}
+.button-danger:disabled {
+	background: var(--color-bg-disabled-1);
+	color: var(--color-text-disabled);
+	opacity: 0.8;
+}
+
+.button-ghost {
+	background: transparent;
+	color: var(--color-text-ui);
+}
+.button-ghost:hover {
+	background: var(--color-bg-highlight-1);
+}
+.button-ghost:active {
+	background: var(--color-bg-highlight-2);
+}
+.button-ghost:disabled {
+	background: transparent;
+	opacity: 0.4;
+}
+
 button.processing {
 	outline: 1px solid rgba(255, 255, 255, 0.5);
 	animation: .5s ease-out infinite alternate processing;
@@ -9521,13 +9573,14 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 			<div className="buttons">
 				<button
 					title="Run next prediction (Ctrl + Enter)"
-					className=${cancel && !sessionEndpointConnecting ? ((predictStartTokens === tokens && (endpointAPI != API_AI_HORDE || !hordeProcessing)) ? 'processing' : 'completing') : ''}
+					className=${`button-primary${cancel && !sessionEndpointConnecting ? ((predictStartTokens === tokens && (endpointAPI != API_AI_HORDE || !hordeProcessing)) ? ' processing' : ' completing') : ''}`}
 					disabled=${!!cancel || stoppingStringsError || drySequenceBreakersError || bannedTokensError}
 					onClick=${() => predictActive()}>
 					Predict
 				</button>
 				<button
 					title="Cancel prediction (Escape)"
+					className="button-danger"
 					disabled=${!cancel || sessionEndpointConnecting}
 					onClick=${cancel}>
 					Cancel
@@ -9535,6 +9588,7 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 				<div className="shorts">
 					<button
 						title="Regenerate (Ctrl + R)"
+						className="button-ghost"
 						disabled=${!undoStack.current.length}
 						onClick=${() => undoAndPredict()}
 						onMouseEnter=${() => setUndoHovered(true)}
@@ -9546,6 +9600,7 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 				<div className="shorts">
 					<button
 						title="Undo (Ctrl + Z)"
+						className="button-ghost"
 						disabled=${!!cancel || !undoStack.current.length}
 						onClick=${() => undo()}
 						onMouseEnter=${() => setUndoHovered(true)}
@@ -9554,6 +9609,7 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 					</button>
 					<button
 						title="Redo (Ctrl + Y)"
+						className="button-ghost"
 						disabled=${!!cancel || !redoStack.current.length}
 						onClick=${() => redo()}>
 						<${SVG_Redo}/>
