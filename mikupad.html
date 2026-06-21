@@ -1149,6 +1149,16 @@ button.completing {
 	outline: none;
 }
 
+/* Top-level sidebar sections: subtle left-accent + stronger header so
+   Sessions/Parameters/Sampling/Persistent Context read as named sections
+   rather than blending into the surrounding control density. */
+#sidebar > .collapsible-group {
+	margin-top: 4px;
+}
+#sidebar > .collapsible-group:first-of-type {
+	margin-top: 0;
+}
+
 .collapsible-header {
 	user-select: none;
 	cursor: pointer;
@@ -1158,6 +1168,26 @@ button.completing {
 	color: inherit;
 	background-color: var(--color-bg-input-1);
 	border-radius: 2px;
+	border-left: 2px solid transparent;
+	transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+/* Section-level headers (direct children of #sidebar) get an accent
+   border that picks up the miku brand color when the section is open.
+   Uses :has() — supported in all modern browsers as of 2024. */
+#sidebar > .collapsible-group > .collapsible-header {
+	font-weight: 600;
+	letter-spacing: 0.01em;
+	border-left-color: var(--color-bg-rule);
+}
+#sidebar > .collapsible-group:has(> .collapsible-content.expanded) > .collapsible-header {
+	border-left-color: var(--color-miku);
+}
+/* Expanded content gets a faint left-border continuation so the section
+   visually holds together as one unit while open. */
+#sidebar > .collapsible-group:has(> .collapsible-content.expanded) > .collapsible-content {
+	border-left: 2px solid color-mix(in oklch, var(--color-miku) 30%, transparent);
+	margin-left: -2px;
+	padding-left: 6px;
 }
 .collapsible-header svg {
 	margin-right: 5px;
