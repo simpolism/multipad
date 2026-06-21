@@ -1306,7 +1306,11 @@ button.completing {
 		right: 0;
 		bottom: 0;
 	}
-	#sidebar .theme-selector:not(.visible), .horz-separator:not(.visible), .collapsible-group:not(.visible) {
+	/* Mobile sidebar visibility: when not .mobile-visible, hide all
+	   children except the bottom buttons row (where #button-settings lives). */
+	#sidebar:not(.mobile-visible) > .theme-selector,
+	#sidebar:not(.mobile-visible) > .horz-separator,
+	#sidebar:not(.mobile-visible) > .collapsible-group {
 		display: none;
 	}
 	#button-settings {
@@ -8976,6 +8980,7 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 	const sidebar = useRef(null);
 	const [sidebarHeight, setSidebarHeight] = useState(0);
 	const [isMobile, setIsMobile] = useState(false);
+	const [mobileSidebarVisible, setMobileSidebarVisible] = useState(false);
 	useEffect(() => {
 		setSidebarHeight(sidebar.current.scrollHeight);
 		const observer = new SVResizeObserver(() => {
@@ -9229,7 +9234,7 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 					</button>`;
 				})}
 			</div>` : null}
-		<div id="sidebar" ref=${sidebar} style=${{ 'max-height': ''}}>
+		<div id="sidebar" ref=${sidebar} className=${mobileSidebarVisible ? 'mobile-visible' : ''} style=${{ 'max-height': ''}}>
 			<div className="buttons instructTemplateSidebar theme-selector">
 				<${SelectBox}
 					label="Theme"
@@ -9746,20 +9751,9 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 				</div>
 				<button
 					id="button-settings"
-					onClick=${() => {
-						toggleModal("settings");
-						if (modalState.settings) {
-							document.getElementsByClassName("theme-selector")[0].classList.remove("visible");
-							document.getElementsByClassName("horz-separator")[0].classList.remove("visible");
-							for (const collapseGroup of document.getElementsByClassName("collapsible-group"))
-								collapseGroup.classList.remove("visible");
-						} else {
-							document.getElementsByClassName("theme-selector")[0].classList.add("visible");
-							document.getElementsByClassName("horz-separator")[0].classList.add("visible");
-							for (const collapseGroup of document.getElementsByClassName("collapsible-group"))
-								collapseGroup.classList.add("visible");
-						}
-					}}>
+					aria-label="Toggle sidebar"
+					aria-expanded=${mobileSidebarVisible}
+					onClick=${() => setMobileSidebarVisible(v => !v)}>
 					<${SVG_MobileSidebar}/>
 				</button>
 			</div>
