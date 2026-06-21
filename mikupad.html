@@ -8982,13 +8982,39 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 	const [isMobile, setIsMobile] = useState(false);
 	const [mobileSidebarVisible, setMobileSidebarVisible] = useState(false);
 	useEffect(() => {
-		setSidebarHeight(sidebar.current.scrollHeight);
+		const checkMobile = () => setIsMobile(window.innerWidth < 767.8);
+		const measureSidebar = () => setSidebarHeight(sidebar.current.scrollHeight);
+
+		// Initial measurement
+		checkMobile();
+		measureSidebar();
+
+		// SVResizeObserver picks up sidebar content changes (sections
+		// expanding/collapsing, modals opening that push the sidebar around).
 		const observer = new SVResizeObserver(() => {
-			setIsMobile(window.innerWidth < 767.8);
-			setSidebarHeight(sidebar.current.scrollHeight);
+			checkMobile();
+			measureSidebar();
 		});
 		observer.observe(sidebar.current);
-		return () => observer.disconnect();
+
+		// Window resize listener catches viewport breakpoint crossings
+		// that don't change sidebar content (e.g. rotating phone, dragging
+		// browser edge). Debounced so we don't thrash on continuous drags.
+		let resizeTimer = null;
+		const onWindowResize = () => {
+			if (resizeTimer) clearTimeout(resizeTimer);
+			resizeTimer = setTimeout(() => {
+				checkMobile();
+				measureSidebar();
+			}, 100);
+		};
+		window.addEventListener('resize', onWindowResize);
+
+		return () => {
+			observer.disconnect();
+			window.removeEventListener('resize', onWindowResize);
+			if (resizeTimer) clearTimeout(resizeTimer);
+		};
 	}, []);
 
 	// handle instruct modal result
