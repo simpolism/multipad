@@ -901,6 +901,73 @@ button {
 	background: var(--color-bg-input-1);
 	border-radius: 2px;
 }
+.editor-toolbar {
+	position: absolute;
+	top: 6px;
+	right: 6px;
+	display: flex;
+	flex-direction: row;
+	gap: 2px;
+	z-index: 5;
+	background: color-mix(in oklch, var(--color-bg-prompt) 80%, transparent);
+	backdrop-filter: blur(4px);
+	border-radius: 4px;
+	padding: 2px;
+}
+.editor-toolbar > button {
+	all: unset;
+	cursor: pointer;
+	color: var(--color-svg-2);
+	width: 1.75em;
+	height: 1.75em;
+	border-radius: 3px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	position: relative;
+}
+.editor-toolbar > button:hover {
+	background: var(--color-bg-highlight-1);
+	color: var(--color-svg-1);
+}
+.editor-toolbar > button:focus-visible {
+	outline: 1px solid var(--color-base-0);
+	outline-offset: 1px;
+}
+.editor-toolbar > button.active {
+	background: var(--color-bg-highlight-2);
+	color: var(--color-svg-1);
+}
+.editor-toolbar > button > svg {
+	width: 1.1em;
+	height: 1.1em;
+}
+.editor-toolbar > button[data-tooltip]:hover::after {
+	content: attr(data-tooltip);
+	position: absolute;
+	top: calc(100% + 4px);
+	right: 0;
+	background: var(--color-bg-popover-1);
+	color: var(--color-text-ui);
+	padding: 4px 8px;
+	border-radius: 3px;
+	font-size: 0.75rem;
+	white-space: nowrap;
+	pointer-events: none;
+	z-index: 10;
+	box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+@media (max-width: 767.98px) {
+	.editor-toolbar {
+		top: 4px;
+		right: 4px;
+	}
+	.editor-toolbar > button {
+		width: 2em;
+		height: 2em;
+	}
+}
+
 button.textAreaSettings {
 	all: unset;
 	color: var(--color-svg-2);
@@ -9007,26 +9074,33 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 
 	return html`
 		<div id="prompt-container" onMouseMove=${onPromptMouseMove} style=${{ 'margin-bottom': isMobile && !showMarkdownPreview ? sidebarHeight + 'px' : 0 }}>
-			<button
-				title="Editor Preferences"
-				className="textAreaSettings"
-				onClick=${() => toggleModal("prompt")}>
-				<${SVG_Settings}/>
-			</button>
-			<button
-				title="Search & Replace"
-				style=${{"margin-top":"1.5em"}}
-				className="textAreaSettings"
-				onClick=${() => toggleModal("searchAndReplace")}>
-				<${SVG_SearchAndReplace} style=${{"height":"1.3em"}} />
-			</button>
-			<button
-				title="Toggle Markdown Preview"
-				style=${{"margin-top":"3em"}}
-				className="textAreaSettings"
-				onClick=${() => setShowMarkdownPreview(p => !p)}>
-				<${SVG_SplitView}/>
-			</button>
+			<div className="editor-toolbar" role="toolbar" aria-label="Editor actions">
+				<button
+					type="button"
+					aria-label="Editor Preferences"
+					data-tooltip="Editor Preferences"
+					className=${modalState.prompt ? 'active' : ''}
+					onClick=${() => toggleModal("prompt")}>
+					<${SVG_Settings}/>
+				</button>
+				<button
+					type="button"
+					aria-label="Search & Replace"
+					data-tooltip="Search & Replace"
+					className=${modalState.searchAndReplace ? 'active' : ''}
+					onClick=${() => toggleModal("searchAndReplace")}>
+					<${SVG_SearchAndReplace} />
+				</button>
+				<button
+					type="button"
+					aria-label="Toggle Markdown Preview"
+					data-tooltip="Toggle Markdown Preview"
+					aria-pressed=${showMarkdownPreview}
+					className=${showMarkdownPreview ? 'active' : ''}
+					onClick=${() => setShowMarkdownPreview(p => !p)}>
+					<${SVG_SplitView}/>
+				</button>
+			</div>
 			<textarea
 				ref=${promptArea}
 				readOnly=${!!cancel}
