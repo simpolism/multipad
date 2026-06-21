@@ -1422,25 +1422,16 @@ button.completing {
 		display: flex;
 		flex-direction: column;
 	}
-	/* The action buttons row (.buttons holding Predict/Cancel/Regen/Undo/Redo)
-	   and the #button-settings toggle are the last children of #sidebar.
-	   Sticky-bottom them so they're always reachable without scrolling
-	   past all the parameter sections. */
-	#sidebar.mobile-visible > .buttons:last-of-type,
-	#sidebar.mobile-visible > #button-settings {
+	/* Sticky-bottom the Predict/Cancel/Regen/Undo/Redo row so core actions
+	   stay reachable without scrolling past all parameter sections. */
+	#sidebar.mobile-visible > .sidebar-actions {
 		position: sticky;
 		bottom: 0;
 		background: var(--color-bg-ui-1);
 		z-index: 2;
-	}
-	#sidebar.mobile-visible > .buttons:last-of-type {
 		padding: 6px 4px;
 		margin: 0 -4px 0;
 		border-top: 1px solid var(--color-bg-rule);
-	}
-	#sidebar.mobile-visible > #button-settings {
-		padding: 4px;
-		margin: 0 -4px -4px;
 	}
 	/* Mobile sidebar visibility: when not .mobile-visible, hide all
 	   children except the bottom buttons row (where #button-settings lives). */
@@ -9867,8 +9858,8 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 						</button>`;
 					})}
 				</div>`}
-			<div className="buttons">
-				<button
+				<div className="buttons sidebar-actions">
+					<button
 					title="Run next prediction (Ctrl + Enter)"
 					className=${`button-primary${cancel && !sessionEndpointConnecting ? ((predictStartTokens === tokens && (endpointAPI != API_AI_HORDE || !hordeProcessing)) ? ' processing' : ' completing') : ''}`}
 					disabled=${!!cancel || stoppingStringsError || drySequenceBreakersError || bannedTokensError}
