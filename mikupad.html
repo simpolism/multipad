@@ -2392,6 +2392,20 @@ async function* openaiCompletion({ endpoint, endpointAPIKey, proxyEndpoint, sign
 				}
 				continue;
 			}
+			const tokens = logprobsData?.tokens;
+			if (tokens?.length) {
+				for (let i = 0; i < tokens.length; i++) {
+					const token = tokens[i];
+					if (!token)
+						continue;
+					yield openaiChunkWithProbs(
+						token,
+						openaiTopLogprobsToProbs(logprobsData.top_logprobs?.[i]),
+						logprobsData.token_logprobs?.[i]
+					);
+				}
+				continue;
+			}
 
 			const text = choice.text;
 			const probs = openaiTopLogprobsToProbs(logprobsData?.top_logprobs?.[0]);
