@@ -1632,8 +1632,6 @@ function normalizeEndpoint(endpoint, endpointAPI) {
 	url.pathname = url.pathname.replace(/\/+/g, "/"); // normalize consecutive slashes
 
 	let urlString = url.toString();
-	if (endpointAPI == API_OPENAI_COMPAT)
-		urlString = urlString.replace(/\/v1\/?$/, ""); // remove "/v1" from the end of the string
 	if (endpointAPI == API_KOBOLD_CPP)
 		urlString = urlString.replace(/\/api\/?$/, ""); // remove "/api" from the end of the string
 	if (endpointAPI == API_AI_HORDE)
@@ -1641,6 +1639,21 @@ function normalizeEndpoint(endpoint, endpointAPI) {
 	urlString = urlString.replace(/\/$/, ""); // remove "/" from the end of the string
 
 	return urlString;
+}
+
+function joinEndpointRoute(endpoint, route) {
+	const url = new URL(endpoint);
+	const routePath = route.replace(/^\/+/, "");
+	let basePath = url.pathname.replace(/\/+$/, "");
+	if (basePath.endsWith(`/${routePath}`))
+		return url.toString();
+	if (basePath.endsWith("/v1") && routePath.startsWith("v1/")) {
+		basePath = `${basePath}/${routePath.slice(3)}`;
+	} else {
+		basePath = `${basePath}/${routePath}`;
+	}
+	url.pathname = basePath.replace(/\/+/g, "/");
+	return url.toString();
 }
 
 export async function getTokenCount({ endpoint, endpointAPI, endpointAPIKey, signal, ...options }) {
@@ -2061,7 +2074,7 @@ async function koboldCppAbortCompletion({ endpoint, proxyEndpoint, ...options })
 
 async function openaiAphroditeTokenCount({ endpoint, endpointAPIKey, proxyEndpoint, signal, ...options }) {
 	try {
-		const res = await fetch(`${proxyEndpoint ?? endpoint}/v1/token/encode`, {
+		const res = await fetch(joinEndpointRoute(proxyEndpoint ?? endpoint, "/v1/token/encode"), {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
@@ -2084,7 +2097,7 @@ async function openaiAphroditeTokenCount({ endpoint, endpointAPIKey, proxyEndpoi
 
 async function openaiOobaTokenCount({ endpoint, proxyEndpoint, signal, ...options }) {
 	try {
-		const res = await fetch(`${proxyEndpoint ?? endpoint}/v1/internal/token-count`, {
+		const res = await fetch(joinEndpointRoute(proxyEndpoint ?? endpoint, "/v1/internal/token-count"), {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
@@ -2106,7 +2119,7 @@ async function openaiOobaTokenCount({ endpoint, proxyEndpoint, signal, ...option
 
 async function openaiTabbyTokenCount({ endpoint, endpointAPIKey, proxyEndpoint, signal, ...options }) {
 	try {
-		const res = await fetch(`${proxyEndpoint ?? endpoint}/v1/token/encode`, {
+		const res = await fetch(joinEndpointRoute(proxyEndpoint ?? endpoint, "/v1/token/encode"), {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
@@ -2129,7 +2142,7 @@ async function openaiTabbyTokenCount({ endpoint, endpointAPIKey, proxyEndpoint, 
 
 async function openaiOobaTokenize({ endpoint, endpointAPIKey, proxyEndpoint, signal, ...options }) {
 	try {
-		const res = await fetch(`${proxyEndpoint ?? endpoint}/v1/internal/encode`, {
+		const res = await fetch(joinEndpointRoute(proxyEndpoint ?? endpoint, "/v1/internal/encode"), {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
@@ -2163,7 +2176,7 @@ async function openaiOobaTokenize({ endpoint, endpointAPIKey, proxyEndpoint, sig
 }
 async function openaiOobaDetokenize({ endpoint, endpointAPIKey, proxyEndpoint, signal, ...options }) {
 	try {
-		const res = await fetch(`${proxyEndpoint ?? endpoint}/v1/internal/decode`, {
+		const res = await fetch(joinEndpointRoute(proxyEndpoint ?? endpoint, "/v1/internal/decode"), {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
@@ -2184,7 +2197,7 @@ async function openaiOobaDetokenize({ endpoint, endpointAPIKey, proxyEndpoint, s
 
 async function openaiTabbyTokenize({ endpoint, endpointAPIKey, proxyEndpoint, signal, ...options }) {
 	try {
-		const res = await fetch(`${proxyEndpoint ?? endpoint}/v1/token/encode`, {
+		const res = await fetch(joinEndpointRoute(proxyEndpoint ?? endpoint, "/v1/token/encode"), {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
@@ -2218,7 +2231,7 @@ async function openaiTabbyTokenize({ endpoint, endpointAPIKey, proxyEndpoint, si
 }
 async function openaiTabbyDetokenize({ endpoint, endpointAPIKey, proxyEndpoint, signal, ...options }) {
 	try {
-		const res = await fetch(`${proxyEndpoint ?? endpoint}/v1/token/decode`, {
+		const res = await fetch(joinEndpointRoute(proxyEndpoint ?? endpoint, "/v1/token/decode"), {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
@@ -2240,7 +2253,7 @@ async function openaiTabbyDetokenize({ endpoint, endpointAPIKey, proxyEndpoint, 
 async function openaiModels({ endpoint, endpointAPIKey, proxyEndpoint, signal, ...options }) {
 	const isTogetherAI = endpoint.toLowerCase().includes("together.xyz");
 
-	const res = await fetch(`${proxyEndpoint ?? endpoint}/v1/models`, {
+	const res = await fetch(joinEndpointRoute(proxyEndpoint ?? endpoint, "/v1/models"), {
 		method: 'GET',
 		headers: {
 			'Content-Type': 'application/json',
@@ -2345,10 +2358,7 @@ function openaiChunkWithProbs(content, probs, logprob) {
 }
 
 async function* openaiCompletion({ endpoint, endpointAPIKey, proxyEndpoint, signal, ...options }) {
-	let finalEndpoint = proxyEndpoint ?? endpoint;
-	if (!finalEndpoint.endsWith("/completions")) {
-		finalEndpoint += "/v1/completions";
-	}
+	let finalEndpoint = joinEndpointRoute(proxyEndpoint ?? endpoint, "/v1/completions");
 	const res = await fetch(finalEndpoint, {
 		method: 'POST',
 		headers: {
@@ -2477,10 +2487,7 @@ async function* openaiBufferUtf8Stream(stream) {
 }
 
 async function* openaiChatCompletion({ endpoint, endpointAPIKey, proxyEndpoint, signal, ...options }) {
-	let finalEndpoint = proxyEndpoint ?? endpoint;
-	if (!finalEndpoint.endsWith("/completions")) {
-		finalEndpoint += "/v1/chat/completions";
-	}
+	let finalEndpoint = joinEndpointRoute(proxyEndpoint ?? endpoint, "/v1/chat/completions");
 	const res = await fetch(finalEndpoint, {
 		method: 'POST',
 		headers: {
@@ -2551,7 +2558,7 @@ async function* openaiChatCompletion({ endpoint, endpointAPIKey, proxyEndpoint, 
 
 async function openaiOobaAbortCompletion({ endpoint, proxyEndpoint, ...options }) {
 	try {
-		await fetch(`${proxyEndpoint ?? endpoint}/v1/internal/stop-generation`, {
+		await fetch(joinEndpointRoute(proxyEndpoint ?? endpoint, "/v1/internal/stop-generation"), {
 			method: 'POST',
 			headers: {
 				...(proxyEndpoint ? { 'X-Real-URL': endpoint } : {})
