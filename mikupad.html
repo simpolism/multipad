@@ -6945,6 +6945,7 @@ const defaultPresets = {
 	drySequenceBreakers: "[\"\\n\", \":\", \"\\\"\", \"*\"]",
 	bannedTokens: "[]",
 	stoppingStrings: "[]",
+	globalStoppingStrings: "[]",
 	useBasicStoppingMode: true,
 	basicStoppingModeType: 'max_tokens',
 	ignoreEos: false,
@@ -7258,7 +7259,9 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 	const [predictStartTokens, setPredictStartTokens] = useState(0);
 	const [lastError, setLastError] = useState(undefined);
 	const [stoppingStrings, setStoppingStrings] = useSessionState('stoppingStrings', defaultPresets.stoppingStrings);
+	const [globalStoppingStrings, setGlobalStoppingStrings] = useSessionState('globalStoppingStrings', defaultPresets.globalStoppingStrings);
 	const [stoppingStringsError, setStoppingStringsError] = useState(undefined);
+	const [globalStoppingStringsError, setGlobalStoppingStringsError] = useState(undefined);
 	const [useBasicStoppingMode, setUseBasicStoppingMode] = useSessionState('useBasicStoppingMode', stoppingStrings != '[]' ? false : defaultPresets.useBasicStoppingMode);
 	const [basicStoppingModeType, setBasicStoppingModeType] = useSessionState('basicStoppingModeType', defaultPresets.basicStoppingModeType);
 	const [savedScrollTop, setSavedScrollTop] = useSessionState('scrollTop', defaultPresets.scrollTop);
@@ -8005,6 +8008,7 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 			} else {
 				stopParam = JSON.parse(stoppingStrings);
 			}
+			stopParam = [...new Set([...stopParam, ...JSON.parse(globalStoppingStrings)])];
 
 			if (useChatAPI && !templates[selectedTemplate]) {
 				const defaultTemplate = templates["Mistral"] || Object.values(templates)[0];
@@ -8431,6 +8435,15 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 			setStoppingStringsError(e.toString());
 		}
 	}, [stoppingStrings]);
+
+	useEffect(() => {
+		try {
+			JSON.parse(globalStoppingStrings);
+			setGlobalStoppingStringsError(undefined);
+		} catch (e) {
+			setGlobalStoppingStringsError(e.toString());
+		}
+	}, [globalStoppingStrings]);
 
 	useEffect(() => {
 		try {
@@ -9658,8 +9671,14 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 						disabled=${!!cancel}
 						onClick=${() => setUseBasicStoppingMode(prev => !prev)}>
 						${useBasicStoppingMode ? "A" : "B"}
-						</button>
+					</button>
 				</div>
+				<${InputBox} label="Global Stop Strings (JSON array)" type="text" pattern="^\\[.*?\\]$"
+					className="${globalStoppingStringsError ? 'rejected' : ''}"
+					tooltip="${globalStoppingStringsError ? globalStoppingStringsError : ''}"
+					readOnly=${!!cancel}
+					value=${globalStoppingStrings}
+					onValueChange=${setGlobalStoppingStrings}/>
 			</${CollapsibleGroup}>
 			<${CollapsibleGroup} label="Sampling" expanded menu=${html`
 					<${Checkbox} label="Temperature"
@@ -9969,7 +9988,7 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 					<button
 					title="Run next prediction (Ctrl + Enter)"
 					className=${`button-primary${cancel && !sessionEndpointConnecting ? ((predictStartTokens === tokens && (endpointAPI != API_AI_HORDE || !hordeProcessing)) ? ' processing' : ' completing') : ''}`}
-					disabled=${!!cancel || stoppingStringsError || drySequenceBreakersError || bannedTokensError}
+					disabled=${!!cancel || stoppingStringsError || globalStoppingStringsError || drySequenceBreakersError || bannedTokensError}
 					onClick=${() => predictActive()}>
 					Predict
 				</button>
