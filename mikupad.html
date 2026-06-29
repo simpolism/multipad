@@ -8347,16 +8347,11 @@ export function App({ sessionStorage, templateStorage, themeStorage, profileStor
 		setTriggerPredict(true);
 	}
 
-	// Helper: predict against the active profile if one is selected,
-	// otherwise plain predict() with current session state.
-	// Re-applies the profile every fire so edits made in the modal
-	// since last fire are picked up. No-op overhead if no profile.
+	// Predict uses the current session state. Selecting or hotkey-firing a
+	// profile applies that profile once; after that, sidebar edits are live
+	// session overrides and should not be reset on every prediction.
 	function predictActive() {
-		if (selectedProfile && profiles[selectedProfile]) {
-			fireProfile(selectedProfile);
-		} else {
-			predict();
-		}
+		predict();
 	}
 
 	function setTitleToSession() {
